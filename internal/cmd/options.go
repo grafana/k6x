@@ -256,6 +256,7 @@ func getspinner(opts *options) *spinner.Spinner {
 	}
 
 	sp := spinner.New(spinner.CharSets[51], 200*time.Millisecond, sopts...)
+	sp.Reverse()
 
 	if opts.verbose || opts.quiet || opts.help {
 		sp.Disable()

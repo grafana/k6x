@@ -1,0 +1,63 @@
+# SPDX-FileCopyrightText: 2023 Iván SZKIBA
+#
+# SPDX-License-Identifier: AGPL-3.0-only
+
+project_name: k6x
+before:
+  hooks:
+    - go mod tidy
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:  [ 'darwin', 'linux', 'windows' ]
+    goarch: [ 'amd64', 'arm64' ]
+    ldflags:
+      - '-s -w -X {{.ModulePath}}/internal/cmd._version={{.Version}} -X {{.ModulePath}}/internal/cmd._appname={{.ProjectName}}'
+source:
+  enabled: true
+  name_template: '{{ .ProjectName }}_{{ .Version }}_source'
+
+archives:
+  - id: bundle
+    format: tar.gz
+    format_overrides:
+    - goos: windows
+      format: zip
+nfpms:
+  - package_name: '{{.ProjectName}}'
+    vendor: Iván Szkiba
+    maintainer: Iván Szkiba <iszkiba@gmail.com>
+    description: |-
+      Automatic k6 provisioning with extensions.
+
+    license: MIT
+    formats: [ 'deb', 'rpm' ]
+    umask: 0o022
+    overrides:
+      deb:
+        contents:
+          - src: LICENSE
+            dst: /usr/share/doc/{{.ProjectName}}/copyright
+          - src: README.md
+            dst: /usr/share/doc/{{.ProjectName}}/README.md
+      rpm:
+        contents:
+          - src: LICENSE
+            dst: /usr/share/doc/{{.ProjectName}}/LICENSE
+          - src: README.md
+            dst: /usr/share/doc/{{.ProjectName}}/README.md
+
+checksum:
+  name_template: '{{ .ProjectName }}_{{ .Version }}_checksums.txt'
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next+{{.ShortCommit}}{{if .IsGitDirty}}.dirty{{else}}{{end}}"
+
+changelog:
+  sort: asc
+  abbrev: -1
+  filters:
+    exclude:
+      - '^chore:'
+      - '^docs:'
+      - '^test:'

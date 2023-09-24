@@ -229,6 +229,6 @@ major change is API breaking. For example,
 
 ## Future
 
-One possible future development idea is to support local k6 build. If the user has a go compiler and a git version manager, k6 can be built locally. This can already reduce the first cache loading time, but it can significantly speed up subsequent builds.
+One possible future development idea is to support local k6 build. If the user has a go compiler and a git version manager, the k6 build can be done natively, without using Docker Engine. This can already reduce the first cache loading time, but it can significantly speed up subsequent builds.
 
 Another possible future development idea is to make it possible to use pre-built k6 binaries. Instead of building, the k6 binary could be downloaded from properly prepared custom k6 GitHub releases. This will allow you to use k6x even without Docker Engine. In addition, the use of pre-built k6 binaries will significantly reduce the cache loading time (from 45-50 seconds to a few seconds).

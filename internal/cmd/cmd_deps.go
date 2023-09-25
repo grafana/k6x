@@ -37,7 +37,7 @@ func depsCommand(
 	if opts.resolve {
 		ings, rerr := res.Resolve(ctx, deps)
 		if rerr != nil {
-			return err
+			return rerr
 		}
 
 		result = ings

@@ -90,16 +90,7 @@ func collectDependencies(
 	}
 
 	deps := make(dependency.Dependencies)
-	/*
-		if exists(cmd, opts.dirs.fs) {
-			cmdeps, err := resolver.CommandDependencies(ctx, cmd, "version")
-			if err != nil {
-				return nil, err
-			}
 
-			addOptional(ctx, res, deps, cmdeps)
-		}
-	*/
 	if len(script) > 0 {
 		sdeps, err := dependency.FromScript(script, opts.dirs.fs, deps)
 		if err != nil {
@@ -133,7 +124,12 @@ func build(
 		return err
 	}
 
-	err = builder.Build(ctx, ings, opts.dirs.bin, opts.dirs.fs)
+	b, err := builder.New(opts.engines...)
+	if err != nil {
+		return err
+	}
+
+	err = b.Build(ctx, ings, opts.dirs.bin, opts.dirs.fs)
 	if err != nil {
 		return err
 	}

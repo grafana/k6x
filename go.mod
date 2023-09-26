@@ -19,6 +19,7 @@ require (
 	github.com/spf13/afero v1.9.5
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.0
+	go.k6.io/xk6 v0.9.2
 	golang.org/x/sys v0.11.0
 )
 

@@ -29,7 +29,11 @@ func versionCommand(
 		return exitErr, err
 	}
 
-	fmt.Fprintf(stdout, "%s %s (%s)\n", _appname, _version, cmd)
+	if opts.help {
+		_ = usage(stdout, versionUsage, opts)
+	} else {
+		fmt.Fprintf(stdout, "%s %s (%s)\n", _appname, _version, cmd)
+	}
 
 	if opts.dry {
 		return 0, nil
@@ -39,3 +43,12 @@ func versionCommand(
 
 	return exec(cmd, opts.argv, stdin, stdout, stderr)
 }
+
+//nolint:gochecknoglobals
+var versionUsage = `Launcher Flags:
+  --bin-dir path  cache folder for k6 binary (default: {{.bin}})
+  --builder list  comma separated list of builders (default: native,docker)
+  --clean         remove cached k6 binary
+  --dry           do not run k6 command
+
+`

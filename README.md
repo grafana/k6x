@@ -8,15 +8,17 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 **Run k6 with extensions as easy as possible**
 
-k6x is a [k6](https://k6.io) launcher that automatically provides k6 with the [extensions](https://k6.io/docs/extensions/) used by the test.  To do this, k6x analyzes the test script and creates a list of required extensions (it also parses the command line to detect output extensions). Based on this list, k6x builds (and caches) the k6 binary and runs it. The build step uses a Docker Engine (even a [remote one](#remote-docker)), so no other local tools (go, git, docker cli, etc.) are needed, just k6x.
+k6x is a [k6](https://k6.io) launcher that automatically provides k6 with the [extensions](https://k6.io/docs/extensions/) used by the test.  To do this, k6x analyzes the test script and creates a list of required extensions (it also parses the command line to detect output extensions). Based on this list, k6x builds (and caches) the k6 binary and runs it.
+
+The build step uses a [Docker Engine](https://docs.docker.com/engine/) (even a [remote one](#remote-docker)), so no other local tools (go, git, docker cli, etc.) are needed, just k6x. If [Go language toolkit is installed](https://go.dev/doc/install), the build step uses it instead of Docker Engine. In this case, Docker Engine is not needed and build will be faster.
 
 **asciicast**
 
-[![asciicast](https://asciinema.org/a/j6Lr3jKreYGlTt8FVyDPcRxBn.svg)](https://asciinema.org/a/j6Lr3jKreYGlTt8FVyDPcRxBn)
+[![asciicast](https://asciinema.org/a/9WR2NOXd9b1kg2TfldyJXLtKJ.svg)](https://asciinema.org/a/9WR2NOXd9b1kg2TfldyJXLtKJ)
 
 ## Prerequisites
 
-- properly configured Docker Engine environment (e.g. `DOCKER_HOST` environment variable)
+- Either a [Go language toolkit](https://go.dev/doc/install) or a properly configured [Docker Engine](https://docs.docker.com/engine/install/) environment (e.g. `DOCKER_HOST` environment variable)
 
 ## Usage
 
@@ -87,10 +89,17 @@ The k6 subcommands are extended with some global command line options related to
 - `--clean` the cached k6 binary will be deleted and a new binary will be built
 - `--dry` only the cached k6 binary will be updated if necessary, the k6 command will not be executed
 - `--bin-dir path` the directory specified here will be used to cache the k6 binary (it will overwrite the value of `K6X_BIN_DIR`)
+  ```
+  k6x run --bin-dir ./custom-k6 script.js
+  ```
 
-```
-k6x run --bin-dir ./custom-k6 script.js
-```
+- `--builder list` a comma-separated list of builders (default: `native,docker`), available builders:
+  - `native` this builder uses the installed go compiler if available, otherwise the next builder is used without error
+  - `docker` this builder uses Docker Engine, which can be local or remote (specified in `DOCKER_HOST` environment variable)
+
+  ```
+  k6x run --buider docker script.js
+  ```
 
 ### Subcommands
 
@@ -104,6 +113,7 @@ Some new subcommands will also appear, which are related to building the k6 bina
   Flags:
     -o, --out name  output extension name
     --bin-dir path  folder for custom k6 binary (default: .)
+    --builder list  comma separated list of builders (default: native,docker)
     -h, --help      display this help
   ```
 
@@ -144,7 +154,7 @@ The git repository for each extension is determined based on the [k6 extension r
 
 Taking into account the optional version constraints, the appropriate extension version is selected from the git tags of the extension's git repository. Currently, only GitHub repositories are supported, if required, additional repository managers can be supported (eg GitLab).
 
-The custom k6 binary is created using the [xk6 custom k6 builder docker image](https://hub.docker.com/r/grafana/xk6/). The Docker Engine API is accessed using the [docker go client](https://pkg.go.dev/github.com/docker/docker/client), so there is no need for a docker cli command and even a remote Docker Engine can be used.
+If the Go compiler is installed, the k6 binary is created using it. Otherwise the custom k6 binary is created using the [xk6 custom k6 builder docker image](https://hub.docker.com/r/grafana/xk6/). The Docker Engine API is accessed using the [docker go client](https://pkg.go.dev/github.com/docker/docker/client), so there is no need for a docker cli command and even a remote Docker Engine can be used.
 
 The compiled k6 binary is stored in the cache. This binary will be used as long as the extensions included in it meet the current requirements, taking into account the optional version constraints. In order to increase the efficiency of the cache, the newly built k6 binary will also include the previously used extensions (if they are still included in the registry).
 
@@ -229,6 +239,4 @@ major change is API breaking. For example,
 
 ## Future
 
-One possible future development idea is to support native k6 build without Docker Engine. If the user has a go compiler and a git version manager, the k6 build can be done natively, without using Docker Engine. This can already reduce the first cache loading time, and it can significantly speed up subsequent builds.
-
-Another possible future development idea is to make it possible to use pre-built k6 binaries. Instead of building, the k6 binary could be downloaded from properly prepared custom k6 GitHub releases. This will allow you to use k6x even without Docker Engine. In addition, the use of pre-built k6 binaries will significantly reduce the cache loading time (from 45-50 seconds to a few seconds).
+One possible future development idea is to make it possible to use pre-built k6 binaries. Instead of building, the k6 binary could be downloaded from properly prepared custom k6 GitHub releases. This will allow you to use k6x even without Docker Engine. In addition, the use of pre-built k6 binaries will significantly reduce the cache loading time (from 45-50 seconds to a few seconds).

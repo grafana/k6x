@@ -12,9 +12,14 @@ k6x is a [k6](https://k6.io) launcher that automatically provides k6 with the [e
 
 The build step uses a [Docker Engine](https://docs.docker.com/engine/) (even a [remote one](#remote-docker)), so no other local tools (go, git, docker cli, etc.) are needed, just k6x. If [Go language toolkit is installed](https://go.dev/doc/install), the build step uses it instead of Docker Engine. In this case, Docker Engine is not needed and build will be faster.
 
-**asciicast**
+**asciicast (native builder)**
 
 [![asciicast](https://asciinema.org/a/9WR2NOXd9b1kg2TfldyJXLtKJ.svg)](https://asciinema.org/a/9WR2NOXd9b1kg2TfldyJXLtKJ)
+
+**asciicast (docker builder)**
+
+[![asciicast](https://asciinema.org/a/j6Lr3jKreYGlTt8FVyDPcRxBn.svg)](https://asciinema.org/a/j6Lr3jKreYGlTt8FVyDPcRxBn)
+
 
 ## Prerequisites
 

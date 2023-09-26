@@ -16,6 +16,7 @@ import (
 	"github.com/briandowns/spinner"
 	"github.com/spf13/afero"
 	"github.com/spf13/pflag"
+	"github.com/szkiba/k6x/internal/builder"
 	"github.com/szkiba/k6x/internal/dependency"
 )
 
@@ -43,6 +44,7 @@ type options struct {
 	json    bool
 	clean   bool
 	dry     bool
+	engines []builder.Engine
 	out     []string
 	args    []string
 	argv    []string
@@ -87,7 +89,7 @@ func cleanargv(argv []string) []string {
 			continue
 		}
 
-		if arg == "--bin-dir" {
+		if arg == "--bin-dir" || arg == "--builder" {
 			i++
 			continue
 		}
@@ -98,22 +100,7 @@ func cleanargv(argv []string) []string {
 	return clean
 }
 
-func getopts(argv []string, afs afero.Fs) (*options, error) {
-	opts := new(options)
-
-	opts.appname = _appname
-
-	dirs, err := getdirs(opts.appname, afs)
-	if err != nil {
-		return nil, err
-	}
-
-	opts.dirs = dirs
-
-	opts.argv = cleanargv(argv)
-	opts.args = make([]string, len(argv))
-	copy(opts.args, argv)
-
+func newFlagSet(opts *options) *pflag.FlagSet {
 	flag := pflag.NewFlagSet("root", pflag.ContinueOnError)
 
 	flag.ParseErrorsWhitelist.UnknownFlags = true
@@ -140,9 +127,34 @@ func getopts(argv []string, afs afero.Fs) (*options, error) {
 		flag.BoolVar(&dummy, opt, false, "")
 	}
 
-	var bin string
+	return flag
+}
 
-	flag.StringVar(&bin, "bin-dir", "", "")
+func getopts(argv []string, afs afero.Fs) (*options, error) {
+	opts := new(options)
+
+	opts.appname = _appname
+
+	dirs, err := getdirs(opts.appname, afs)
+	if err != nil {
+		return nil, err
+	}
+
+	opts.dirs = dirs
+
+	opts.argv = cleanargv(argv)
+	opts.args = make([]string, len(argv))
+	copy(opts.args, argv)
+
+	flag := newFlagSet(opts)
+
+	engines := os.Getenv(strings.ToUpper(opts.appname) + "_BUILDER") //nolint:forbidigo
+	if len(engines) == 0 {
+		engines = "native,docker"
+	}
+
+	builders := flag.StringSlice("builder", strings.Split(engines, ","), "")
+	bin := flag.String("bin-dir", "", "")
 
 	if err := flag.Parse(opts.args); err != nil {
 		return nil, err
@@ -150,15 +162,22 @@ func getopts(argv []string, afs afero.Fs) (*options, error) {
 
 	opts.args = flag.Args()
 
-	if len(bin) == 0 {
+	if len(*bin) == 0 {
 		if opts.build() {
-			bin = "."
-		} else {
-			bin = opts.dirs.bin
+			opts.dirs.bin = "."
 		}
+	} else {
+		opts.dirs.bin = *bin
 	}
 
-	opts.dirs.bin = bin
+	for _, val := range *builders {
+		eng, err := builder.EngineString(val)
+		if err != nil {
+			return nil, err
+		}
+
+		opts.engines = append(opts.engines, eng)
+	}
 
 	opts.spinner = getspinner(opts)
 

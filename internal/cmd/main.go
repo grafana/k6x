@@ -77,6 +77,10 @@ func main(
 		return exitErr, err
 	}
 
+	if opts.version() {
+		return versionCommand(ctx, cmd, res, opts, stdin, stdout, stderr)
+	}
+
 	if opts.help || len(opts.argv) == 1 {
 		usagelogo(stdout)
 
@@ -87,10 +91,6 @@ func main(
 
 	if opts.run() {
 		return runCommand(ctx, cmd, res, opts, stdin, stdout, stderr)
-	}
-
-	if opts.version() {
-		return versionCommand(ctx, cmd, res, opts, stdin, stdout, stderr)
 	}
 
 	return otherCommand(ctx, cmd, res, opts, stdin, stdout, stderr)
@@ -114,7 +114,11 @@ func initLogger(opts *options) {
 }
 
 func usage(out io.Writer, tmpl string, opts *options) error {
-	t := template.Must(template.New("usage").Parse(tmpl))
+	name := "usage"
+	if len(opts.args) > 1 {
+		name += opts.args[1]
+	}
+	t := template.Must(template.New(name).Parse(tmpl))
 
 	return t.Execute(out, map[string]interface{}{"appname": opts.appname, "bin": opts.dirs.bin})
 }
@@ -137,6 +141,7 @@ Launcher Commands:
 
 Launcher Flags:
   --bin-dir path  cache folder for k6 binary (default: {{.bin}})
+  --builder list  comma separated list of builders (default: native,docker)
   --clean         remove cached k6 binary
   --dry           do not run k6 command
 `

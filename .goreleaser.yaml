@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 project_name: k6x
+env:
+  - OWNER=szkiba
 before:
   hooks:
     - go mod tidy
@@ -12,7 +14,7 @@ builds:
     goos:  [ 'darwin', 'linux', 'windows' ]
     goarch: [ 'amd64', 'arm64' ]
     ldflags:
-      - '-s -w -X {{.ModulePath}}/internal/cmd._version={{.Version}} -X {{.ModulePath}}/internal/cmd._appname={{.ProjectName}}'
+      - '-s -w -X {{.ModulePath}}/internal/cmd._version={{.Version}} -X {{.ModulePath}}/internal/cmd._appname={{.ProjectName}} -X {{.ModulePath}}/internal/cmd._owner={{index .Env "GITHUB_REPOSITORY_OWNER"}}'
 source:
   enabled: true
   name_template: '{{ .ProjectName }}_{{ .Version }}_source'
@@ -30,7 +32,7 @@ nfpms:
     description: |-
       Automatic k6 provisioning with extensions.
 
-    license: MIT
+    license: AGPL-3.0-only
     formats: [ 'deb', 'rpm' ]
     umask: 0o022
     overrides:
@@ -61,3 +63,61 @@ changelog:
       - '^chore:'
       - '^docs:'
       - '^test:'
+
+dockers:
+  - id: amd64
+    dockerfile: Dockerfile.goreleaser
+    use: buildx
+    image_templates:
+      - "{{ .Env.OWNER }}/{{ .ProjectName }}:{{ .Tag }}-amd64"
+      - "{{ .Env.OWNER }}/{{ .ProjectName }}:v{{ .Major }}-amd64"
+      - "{{ .Env.OWNER }}/{{ .ProjectName }}:v{{ .Major }}.{{ .Minor }}-amd64"
+      - "{{ .Env.OWNER }}/{{ .ProjectName }}:latest-amd64"
+
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--pull"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.licenses=AGPL-3.0-only"
+  - id: arm64
+    dockerfile: Dockerfile.goreleaser
+    use: buildx
+    image_templates:
+      - "{{ .Env.OWNER }}/{{ .ProjectName }}:{{ .Tag }}-amd64"
+      - "{{ .Env.OWNER }}/{{ .ProjectName }}:v{{ .Major }}-amd64"
+      - "{{ .Env.OWNER }}/{{ .ProjectName }}:v{{ .Major }}.{{ .Minor }}-amd64"
+      - "{{ .Env.OWNER }}/{{ .ProjectName }}:latest-amd64"
+
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--pull"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.licenses=AGPL-3.0-only"
+
+docker_manifests:
+- id: tag
+  name_template: "{{ .Env.OWNER }}/{{ .ProjectName }}:{{ .Tag }}"
+  image_templates:
+  - "{{ .Env.OWNER }}/{{ .ProjectName }}:{{ .Tag }}-amd64"
+  - "{{ .Env.OWNER }}/{{ .ProjectName }}-arm64"
+- id: major
+  name_template: "{{ .Env.OWNER }}/{{ .ProjectName }}:{{ .Tag }}"
+  image_templates:
+  - "{{ .Env.OWNER }}/{{ .ProjectName }}:v{{ .Major }}-amd64"
+  - "{{ .Env.OWNER }}/{{ .ProjectName }}:v{{ .Major }}-arm64"
+- id: major-minor
+  name_template: "{{ .Env.OWNER }}/{{ .ProjectName }}:{{ .Tag }}"
+  image_templates:
+  - "{{ .Env.OWNER }}/{{ .ProjectName }}:v{{ .Major }}.{{ .Minor }}-amd64"
+  - "{{ .Env.OWNER }}/{{ .ProjectName }}:v{{ .Major }}.{{ .Minor }}-arm64"
+- id: latest
+  name_template: "{{ .Env.OWNER }}/{{ .ProjectName }}:latest"
+  image_templates:
+  - "{{ .Env.OWNER }}/{{ .ProjectName }}:latest"
+  - "{{ .Env.OWNER }}/{{ .ProjectName }}:latest"

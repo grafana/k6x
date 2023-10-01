@@ -52,18 +52,6 @@ If you have a go development environment, the installation can also be done with
 go install github.com/szkiba/k6x@latest
 ```
 
-## Docker
-
-k6x is also available as a docker image on Docker Hub under the name [szkiba/k6x](https://hub.docker.com/r/szkiba/k6x).
-
-This docker image can be used as a replacement for the official k6 docker image to run test scripts that use extensions. The basic use of the image is the same as using the official k6 image.
-
-The image automatically provides  [k6](https://k6.io) with the [extensions](https://k6.io/docs/extensions/) used by the tests. To do this, [k6x](https://github.com/szkiba/k6x) analyzes the test script and creates a list of required extensions (it also parses the command line to detect output extensions). Based on this list, k6x builds (and caches) the k6 binary and runs it.
-
-The build step is done using the go compiler included in the image. The partial results of the go compilation and build steps are saved to the volume in the `/cache` path (this is where the go cache and the go module cache are placed). By making this volume persistent, the time required for the build step can be significantly reduced.
-
-The k6x docker builder (`--builder docker`) also uses this docker image. It creates a local volume called `k6x-cache` and mounts it to the `/cache` path. Thanks to this, the docker build runs almost at the same speed as the native build (apart from the first build).
-
 ## Extras
 
 ### Pragma
@@ -160,6 +148,18 @@ The k6 subcommands (`version`, `run` etc) also display help with the `--help` or
 ### Remote Docker
 
 To use a remote Docker Engine, the `DOCKER_HOST` environment variable must be set appropriately. To access via a TCP port, simply set the desired value in the form `tcp://host:port`. For access via SSH port, a value of the format `ssh://user@host` should be used. In this case, a properly configured ssh client that can connect without user input is also required.
+
+### Docker Image
+
+k6x is also available as a docker image on Docker Hub under the name [szkiba/k6x](https://hub.docker.com/r/szkiba/k6x).
+
+This docker image can be used as a replacement for the official k6 docker image to run test scripts that use extensions. The basic use of the image is the same as using the official k6 image.
+
+The image automatically provides  [k6](https://k6.io) with the [extensions](https://k6.io/docs/extensions/) used by the tests. To do this, [k6x](https://github.com/szkiba/k6x) analyzes the test script and creates a list of required extensions (it also parses the command line to detect output extensions). Based on this list, k6x builds (and caches) the k6 binary and runs it.
+
+The build step is done using the go compiler included in the image. The partial results of the go compilation and build steps are saved to the volume in the `/cache` path (this is where the go cache and the go module cache are placed). By making this volume persistent, the time required for the build step can be significantly reduced.
+
+The k6x docker builder (`--builder docker`) also uses this docker image. It creates a local volume called `k6x-cache` and mounts it to the `/cache` path. Thanks to this, the docker build runs almost at the same speed as the native build (apart from the first build).
 
 ## Appendix
 

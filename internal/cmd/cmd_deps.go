@@ -63,11 +63,13 @@ func depsCommand(
 const depsUsage = `Print k6 and extension dependencies for a script.
 
 Usage:
-  {{.appname}} deps [flags] script
+  {{.appname}} deps [flags] [script]
 
 Flags:
-  -o, --out name  output extension name
-  --json          use JSON output format
-  --resolve       print resolved dependencies
+  -o, --out name     output extension name
+  --json             use JSON output format
+  --resolve          print resolved dependencies
+  --with dependency  additional dependency and version constraints
+
   -h, --help      display this help
 `

@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: 2023 Iván SZKIBA
+#
+# SPDX-License-Identifier: AGPL-3.0-only
+
+FROM golang:1.21.1-alpine3.18
+VOLUME /cache
+RUN apk add --no-cache ca-certificates git && \
+    adduser -D -u 10000 -g 10000 -h /home/k6x k6x && \
+    mkdir -p /cache/go-build /cache/go-mod /cache/k6x && \
+    chown -R 10000:10000 /cache
+ENV XDG_CACHE_HOME="/cache" GOCACHE="/cache/go-build" GOMODCACHE="/cache/go-mod"
+COPY k6x /usr/bin/k6x
+
+USER 10000
+WORKDIR /home/k6x
+ENTRYPOINT ["k6x"]

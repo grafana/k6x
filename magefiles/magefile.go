@@ -249,7 +249,7 @@ func test() error {
 
 func build() error {
 	_, err := sh.Exec(
-		nil,
+		map[string]string{"CGO_ENABLED": "0"},
 		os.Stdout,
 		os.Stderr,
 		"go",

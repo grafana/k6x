@@ -35,12 +35,13 @@ func buildCommand(
 const buildUsage = `Build custom k6 binary for a script.
 
 Usage:
-  {{.appname}} build [flags] script
+  {{.appname}} build [flags] [script]
 
 Flags:
-  -o, --out name  output extension name
-  --bin-dir path  folder for custom k6 binary (default: {{.bin}})
-  --builder list  comma separated list of builders (default: native,docker)
-  --no-color      disable colored output  
-  -h, --help      display this help
+  -o, --out name     output extension name
+  --bin-dir path     folder for custom k6 binary (default: {{.bin}})
+  --with dependency  additional dependency and version constraints
+  --builder list     comma separated list of builders (default: native,docker)
+  --no-color         disable colored output  
+  -h, --help         display this help
 `

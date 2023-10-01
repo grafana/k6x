@@ -92,7 +92,7 @@ dockers:
       - "{{ .Env.OWNER }}/{{ .ProjectName }}:latest-arm64"
 
     build_flag_templates:
-      - "--platform=linux/amd64"
+      - "--platform=linux/arm64"
       - "--pull"
       - "--label=org.opencontainers.image.created={{.Date}}"
       - "--label=org.opencontainers.image.title={{.ProjectName}}"

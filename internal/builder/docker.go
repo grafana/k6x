@@ -24,26 +24,29 @@ import (
 	"github.com/docker/cli/cli/connhelper"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
 )
 
-const xk6Image = "grafana/xk6"
+const (
+	builderImage = "szkiba/k6x"
+	cacheVolume  = "k6x-cache"
+	cachePath    = "/cache"
+	workdirPath  = "/home/k6x"
+)
 
-func cmdline(ings resolver.Ingredients) ([]string, []string) {
+func (b *dockerBuilder) cmdline(ings resolver.Ingredients) ([]string, []string) {
 	args := make([]string, 0, 2*len(ings))
 	env := make([]string, 0, 1)
 
 	env = append(env, "GOOS="+runtime.GOOS)
+	env = append(env, "GOARCH="+runtime.GOARCH)
+
 	args = append(args, "build")
 
-	if ing, ok := ings.K6(); ok {
-		args = append(args, ing.Tag())
-		env = append(env, "K6_VERSION="+ing.Tag())
-	}
-
-	for _, ext := range ings.Extensions() {
-		args = append(args, "--with", ext.Module+"@"+ext.Tag())
+	for _, ing := range ings {
+		args = append(args, "--with", ing.Name+" "+ing.Tag())
 	}
 
 	return args, env
@@ -92,9 +95,9 @@ func (b *dockerBuilder) close() {
 }
 
 func (b *dockerBuilder) pull(ctx context.Context) error {
-	logrus.Debugf("Pulling %s image", xk6Image)
+	logrus.Debugf("Pulling %s image", builderImage)
 
-	reader, err := b.cli.ImagePull(ctx, xk6Image, types.ImagePullOptions{})
+	reader, err := b.cli.ImagePull(ctx, builderImage, types.ImagePullOptions{})
 	if err != nil {
 		return err
 	}
@@ -134,18 +137,28 @@ func (b *dockerBuilder) pull(ctx context.Context) error {
 }
 
 func (b *dockerBuilder) start(ctx context.Context, ings resolver.Ingredients) (string, error) {
-	cmd, env := cmdline(ings)
+	cmd, env := b.cmdline(ings)
 
 	logrus.Debugf("Executing %s", strings.Join(cmd, " "))
 
 	conf := &container.Config{
-		Image: xk6Image,
+		Image: builderImage,
 		Cmd:   cmd,
-		Tty:   true,
+		Tty:   false,
 		Env:   env,
 	}
 
-	resp, err := b.cli.ContainerCreate(ctx, conf, nil, nil, nil, "")
+	hconf := &container.HostConfig{
+		Mounts: []mount.Mount{
+			{
+				Type:   mount.TypeVolume,
+				Source: cacheVolume,
+				Target: cachePath,
+			},
+		},
+	}
+
+	resp, err := b.cli.ContainerCreate(ctx, conf, hconf, nil, nil, "")
 	if err != nil {
 		return "", err
 	}
@@ -178,7 +191,11 @@ func (b *dockerBuilder) log(ctx context.Context, id string) error {
 
 	var out io.ReadCloser
 
-	out, err := b.cli.ContainerLogs(ctx, id, types.ContainerLogsOptions{ShowStdout: true})
+	out, err := b.cli.ContainerLogs(
+		ctx,
+		id,
+		types.ContainerLogsOptions{ShowStdout: true, ShowStderr: true},
+	)
 	if err != nil {
 		return err
 	}
@@ -191,7 +208,7 @@ func (b *dockerBuilder) log(ctx context.Context, id string) error {
 }
 
 func (b *dockerBuilder) copy(ctx context.Context, id string, dir string, afs afero.Fs) error {
-	binary, _, err := b.cli.CopyFromContainer(ctx, id, "/xk6")
+	binary, _, err := b.cli.CopyFromContainer(ctx, id, workdirPath)
 	if err != nil {
 		return err
 	}

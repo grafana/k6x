@@ -140,9 +140,10 @@ Launcher Commands:
   build  Build custom k6 binary with extensions
 
 Launcher Flags:
-  --bin-dir path  cache folder for k6 binary (default: {{.bin}})
-  --builder list  comma separated list of builders (default: native,docker)
-  --clean         remove cached k6 binary
-  --dry           do not run k6 command
+  --bin-dir path     cache folder for k6 binary (default: {{.bin}})
+  --with dependency  additional dependency and version constraints
+  --builder list     comma separated list of builders (default: native,docker)
+  --clean            remove cached k6 binary
+  --dry              do not run k6 command
 `
 )

@@ -71,6 +71,23 @@ func addOptional(ctx context.Context, res resolver.Resolver, deps, opt dependenc
 	}
 }
 
+func addDeps(ctx context.Context, res resolver.Resolver, deps, req dependency.Dependencies) error {
+	if len(req) == 0 {
+		return nil
+	}
+
+	_, err := res.Resolve(ctx, req)
+	if err != nil {
+		return err
+	}
+
+	for name, dep := range req {
+		deps[name] = dep
+	}
+
+	return nil
+}
+
 func collectDependencies(
 	ctx context.Context,
 	res resolver.Resolver,
@@ -101,6 +118,14 @@ func collectDependencies(
 	}
 
 	addOptional(ctx, res, deps, opts.dependencies())
+
+	if err := addDeps(ctx, res, deps, opts.with); err != nil {
+		return nil, err
+	}
+
+	if _, has := deps.K6(); !has {
+		deps["k6"] = &dependency.Dependency{Name: "k6"}
+	}
 
 	return deps, nil
 }

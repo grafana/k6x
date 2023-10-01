@@ -46,6 +46,7 @@ type options struct {
 	dry     bool
 	engines []builder.Engine
 	out     []string
+	with    dependency.Dependencies
 	args    []string
 	argv    []string
 	dirs    *directories
@@ -59,13 +60,10 @@ func checkargs(args []string, appname string) error {
 	}
 
 	cmd := args[1]
-	if cmd != cmdDeps && cmd != cmdRun {
-		return nil
-	}
 
-	if len(args) != 3 {
+	if len(args) > 3 {
 		return fmt.Errorf(
-			"%s %s: %w: received %d: arg should be a path to a script file",
+			"%s %s: %w: received %d",
 			appname,
 			cmd,
 			errOneArg,
@@ -73,8 +71,7 @@ func checkargs(args []string, appname string) error {
 		)
 	}
 
-	script := args[2]
-	if script == "-" {
+	if len(args) == 3 && args[2] == "-" {
 		return fmt.Errorf("%s %s: %w", appname, cmd, errStdinNotSupported)
 	}
 
@@ -89,7 +86,7 @@ func cleanargv(argv []string) []string {
 			continue
 		}
 
-		if arg == "--bin-dir" || arg == "--builder" {
+		if arg == "--bin-dir" || arg == "--builder" || arg == "--with" {
 			i++
 			continue
 		}
@@ -130,17 +127,43 @@ func newFlagSet(opts *options) *pflag.FlagSet {
 	return flag
 }
 
+func parseWith(with []string) (dependency.Dependencies, error) {
+	deps := make(dependency.Dependencies)
+
+	for _, with := range with {
+		if len(with) == 0 {
+			return nil, errInvalidWith
+		}
+
+		constraints := ""
+
+		parts := strings.SplitN(with, " ", 2)
+		if len(parts) > 1 {
+			constraints = parts[1]
+		}
+
+		dep, err := dependency.New(parts[0], constraints)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %s", errInvalidWith, err.Error())
+		}
+
+		deps[dep.Name] = dep
+	}
+
+	return deps, nil
+}
+
 func getopts(argv []string, afs afero.Fs) (*options, error) {
+	var err error
+
 	opts := new(options)
 
 	opts.appname = _appname
 
-	dirs, err := getdirs(opts.appname, afs)
+	opts.dirs, err = getdirs(opts.appname, afs)
 	if err != nil {
 		return nil, err
 	}
-
-	opts.dirs = dirs
 
 	opts.argv = cleanargv(argv)
 	opts.args = make([]string, len(argv))
@@ -155,8 +178,9 @@ func getopts(argv []string, afs afero.Fs) (*options, error) {
 
 	builders := flag.StringSlice("builder", strings.Split(engines, ","), "")
 	bin := flag.String("bin-dir", "", "")
+	with := flag.StringArray("with", []string{}, "")
 
-	if err := flag.Parse(opts.args); err != nil {
+	if err = flag.Parse(opts.args); err != nil {
 		return nil, err
 	}
 
@@ -171,12 +195,18 @@ func getopts(argv []string, afs afero.Fs) (*options, error) {
 	}
 
 	for _, val := range *builders {
-		eng, err := builder.EngineString(val)
+		var eng builder.Engine
+
+		eng, err = builder.EngineString(val)
 		if err != nil {
 			return nil, err
 		}
 
 		opts.engines = append(opts.engines, eng)
+	}
+
+	if opts.with, err = parseWith(*with); err != nil {
+		return nil, err
 	}
 
 	opts.spinner = getspinner(opts)
@@ -285,8 +315,9 @@ func getspinner(opts *options) *spinner.Spinner {
 }
 
 var (
-	errOneArg            = errors.New("accepts 1 arg")
+	errOneArg            = errors.New("accepts at most 1 arg")
 	errStdinNotSupported = errors.New("standard input is not supported")
+	errInvalidWith       = errors.New("invalid with flag value")
 
 	k6NoArgOpts = []string{ //nolint:gochecknoglobals
 		"no-usage-report",

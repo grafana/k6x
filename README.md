@@ -52,6 +52,18 @@ If you have a go development environment, the installation can also be done with
 go install github.com/szkiba/k6x@latest
 ```
 
+## Docker
+
+k6x is also available as a docker image on Docker Hub under the name [szkiba/k6x](https://hub.docker.com/r/szkiba/k6x).
+
+This docker image can be used as a replacement for the official k6 docker image to run test scripts that use extensions. The basic use of the image is the same as using the official k6 image.
+
+The image automatically provides  [k6](https://k6.io) with the [extensions](https://k6.io/docs/extensions/) used by the tests. To do this, [k6x](https://github.com/szkiba/k6x) analyzes the test script and creates a list of required extensions (it also parses the command line to detect output extensions). Based on this list, k6x builds (and caches) the k6 binary and runs it.
+
+The build step is done using the go compiler included in the image. The partial results of the go compilation and build steps are saved to the volume in the `/cache` path (this is where the go cache and the go module cache are placed). By making this volume persistent, the time required for the build step can be significantly reduced.
+
+The k6x docker builder (`--builder docker`) also uses this docker image. It creates a local volume called `k6x-cache` and mounts it to the `/cache` path. Thanks to this, the docker build runs almost at the same speed as the native build (apart from the first build).
+
 ## Extras
 
 ### Pragma
@@ -170,7 +182,7 @@ The compiled k6 binary is stored in the cache. This binary will be used as long 
 
 At this point, the k6 binary is executed from the cache with exactly the same arguments that were used to start the k6x command.
 
-You can read more about the development ideas in the [Future](#future) section.
+You can read more about the development ideas in the [Feature Request](https://github.com/szkiba/k6x/issues?q=is%3Aopen+is%3Aissue+label%3Afeature) list.
 
 ### Limitations
 
@@ -247,6 +259,3 @@ major change is API breaking. For example,
 * `^0.0` is equivalent to `>=0.0.0 <0.1.0`
 * `^0` is equivalent to `>=0.0.0 <1.0.0`
 
-## Future
-
-One possible future development idea is to make it possible to use pre-built k6 binaries. Instead of building, the k6 binary could be downloaded from properly prepared custom k6 GitHub releases. This will allow you to use k6x even without Docker Engine. In addition, the use of pre-built k6 binaries will significantly reduce the cache loading time (from 45-50 seconds to a few seconds).

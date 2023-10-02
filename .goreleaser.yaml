@@ -68,7 +68,6 @@ dockers:
   - id: amd64
     dockerfile: Dockerfile.goreleaser
     use: buildx
-    skip_push: true
     image_templates:
       - "{{ .Env.OWNER }}/{{ .ProjectName }}:{{ .Tag }}-amd64"
       - "{{ .Env.OWNER }}/{{ .ProjectName }}:v{{ .Major }}-amd64"
@@ -86,7 +85,6 @@ dockers:
   - id: arm64
     dockerfile: Dockerfile.goreleaser
     use: buildx
-    skip_push: true
     image_templates:
       - "{{ .Env.OWNER }}/{{ .ProjectName }}:{{ .Tag }}-arm64"
       - "{{ .Env.OWNER }}/{{ .ProjectName }}:v{{ .Major }}-arm64"

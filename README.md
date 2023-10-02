@@ -14,12 +14,11 @@ The build step uses a [Docker Engine](https://docs.docker.com/engine/) (even a [
 
 **asciicast (native builder)**
 
-[![asciicast](https://asciinema.org/a/9WR2NOXd9b1kg2TfldyJXLtKJ.svg)](https://asciinema.org/a/9WR2NOXd9b1kg2TfldyJXLtKJ)
+[![asciicast](https://asciinema.org/a/610337.svg)](https://asciinema.org/a/610337)
 
 **asciicast (docker builder)**
 
-[![asciicast](https://asciinema.org/a/j6Lr3jKreYGlTt8FVyDPcRxBn.svg)](https://asciinema.org/a/j6Lr3jKreYGlTt8FVyDPcRxBn)
-
+[![asciicast](https://asciinema.org/a/611493.svg)](https://asciinema.org/a/611493)
 
 ## Prerequisites
 

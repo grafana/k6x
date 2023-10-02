@@ -71,6 +71,12 @@ func addOptional(ctx context.Context, res resolver.Resolver, deps, opt dependenc
 	}
 }
 
+func ensureK6(deps dependency.Dependencies) {
+	if _, has := deps.K6(); !has {
+		deps["k6"] = &dependency.Dependency{Name: "k6"}
+	}
+}
+
 func addDeps(ctx context.Context, res resolver.Resolver, deps, req dependency.Dependencies) error {
 	if len(req) == 0 {
 		return nil
@@ -123,10 +129,6 @@ func collectDependencies(
 		return nil, err
 	}
 
-	if _, has := deps.K6(); !has {
-		deps["k6"] = &dependency.Dependency{Name: "k6"}
-	}
-
 	return deps, nil
 }
 
@@ -143,6 +145,8 @@ func build(
 
 		defer sp.Stop()
 	}
+
+	ensureK6(deps)
 
 	ings, err := res.Resolve(ctx, deps)
 	if err != nil {

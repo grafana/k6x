@@ -8,6 +8,7 @@ import (
 	"context"
 	"os"
 
+	"github.com/szkiba/k6x/internal/dependency"
 	"github.com/szkiba/k6x/internal/resolver"
 )
 
@@ -18,7 +19,7 @@ func otherCommand(
 	opts *options,
 	stdin, stdout, stderr *os.File, //nolint:forbidigo
 ) (int, error) {
-	if err := prepare(ctx, cmd, nil, res, opts); err != nil {
+	if err := prepare(ctx, cmd, make(dependency.Dependencies), res, opts); err != nil {
 		return exitErr, err
 	}
 

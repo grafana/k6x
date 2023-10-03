@@ -35,12 +35,12 @@ func depsCommand(
 	}
 
 	if opts.resolve {
-		ings, rerr := res.Resolve(ctx, deps)
+		mods, rerr := res.Resolve(ctx, deps)
 		if rerr != nil {
 			return rerr
 		}
 
-		result = ings
+		result = mods
 	} else {
 		result = deps
 	}

@@ -37,7 +37,7 @@ func FromCommand(cmd string, args ...string) Resolver {
 func (res *commandResolver) Resolve(
 	ctx context.Context,
 	deps dependency.Dependencies,
-) (Ingredients, error) {
+) (dependency.Modules, error) {
 	out, err := exec.CommandContext(ctx, res.cmd, res.args...).Output() //nolint:gosec
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrResolver, err.Error())
@@ -49,13 +49,13 @@ func (res *commandResolver) Resolve(
 func (res *commandResolver) resolveFromOutput(
 	out []byte,
 	deps dependency.Dependencies,
-) (Ingredients, error) {
-	ings, err := parseCommandOutput(out)
+) (dependency.Modules, error) {
+	mods, err := parseCommandOutput(out)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrResolver, err.Error())
 	}
 
-	return ings.filter(deps), nil
+	return mods.Filter(deps), nil
 }
 
 func CommandDependencies(
@@ -68,39 +68,39 @@ func CommandDependencies(
 		return nil, fmt.Errorf("%w: %s", ErrResolver, err.Error())
 	}
 
-	ings, err := parseCommandOutput(out)
+	mods, err := parseCommandOutput(out)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrResolver, err.Error())
 	}
 
 	deps := make(dependency.Dependencies)
 
-	for name := range ings {
+	for name := range mods {
 		deps[name] = &dependency.Dependency{Name: name}
 	}
 
 	return deps, nil
 }
 
-func parseCommandOutput(text []byte) (Ingredients, error) {
+func parseCommandOutput(text []byte) (dependency.Modules, error) {
 	var err error
-	var ing *Ingredient
+	var mod *dependency.Module
 
-	ings := make(Ingredients)
+	mods := make(dependency.Modules)
 
 	if allmatch := reK6.FindAllSubmatch(text, -1); allmatch != nil {
 		match := allmatch[0]
 
-		ing, err = NewIngredient(k6, string(match[idxK6Version]), "")
+		mod, err = dependency.NewModule(k6, string(match[idxK6Version]), "")
 		if err != nil {
 			return nil, err
 		}
 
-		ings[ing.Name] = ing
+		mods[mod.Name] = mod
 	}
 
 	for _, match := range reExtension.FindAllSubmatch(text, -1) {
-		ing, err = NewIngredient(
+		mod, err = dependency.NewModule(
 			string(match[idxExtName]),
 			string(match[idxExtVersion]),
 			string(match[idxExtModule]),
@@ -109,10 +109,10 @@ func parseCommandOutput(text []byte) (Ingredients, error) {
 			return nil, err
 		}
 
-		ings[ing.Name] = ing
+		mods[mod.Name] = mod
 	}
 
-	return ings, nil
+	return mods, nil
 }
 
 const k6 = "k6"

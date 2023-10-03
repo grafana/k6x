@@ -17,16 +17,16 @@ import (
 func (res *ghResolver) resolveReleases(
 	ctx context.Context,
 	deps dependency.Dependencies,
-	ings Ingredients,
+	mods dependency.Modules,
 ) error {
-	for _, ing := range ings {
+	for _, mod := range mods {
 		var owner, repo string
 
-		if ing.Name == "k6" {
+		if mod.Name == "k6" {
 			owner = "grafana"
 			repo = "k6"
 		} else {
-			parts := strings.SplitN(ing.Module, "/", 4)
+			parts := strings.SplitN(mod.Path, "/", 4)
 
 			owner = parts[1]
 			repo = parts[2]
@@ -57,16 +57,16 @@ func (res *ghResolver) resolveReleases(
 				continue
 			}
 
-			dep, ok := deps[ing.Name]
+			dep, ok := deps[mod.Name]
 
 			if ok && dep.Check(ver) {
-				ing.Version = ver
+				mod.Version = ver
 				break
 			}
 		}
 	}
 
-	if err := checkForMisingVersions(deps, ings); err != nil {
+	if err := checkForMisingVersions(deps, mods); err != nil {
 		return err
 	}
 

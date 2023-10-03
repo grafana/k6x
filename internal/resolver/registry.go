@@ -8,6 +8,8 @@ package resolver
 import (
 	"net/url"
 	"strings"
+
+	"github.com/szkiba/k6x/internal/dependency"
 )
 
 type extensionRegistry struct {
@@ -20,12 +22,12 @@ type registeredExtension struct {
 	Type []string `json:"type,omitempty"`
 }
 
-func (reg *extensionRegistry) toIngredients() Ingredients {
-	ings := make(Ingredients)
+func (reg *extensionRegistry) toModules() dependency.Modules {
+	mods := make(dependency.Modules)
 
-	add := func(module, name string) {
-		ing := &Ingredient{Module: module, Name: name, Version: nil}
-		ings[ing.Name] = ing
+	add := func(path, name string) {
+		ing := &dependency.Module{Path: path, Name: name, Version: nil}
+		mods[ing.Name] = ing
 	}
 
 	for _, regExt := range reg.Extensions {
@@ -34,24 +36,24 @@ func (reg *extensionRegistry) toIngredients() Ingredients {
 			continue
 		}
 
-		module := loc.Host + loc.Path
+		path := loc.Host + loc.Path
 
 		for _, typ := range regExt.Type {
 			if typ == "Output" {
-				add(module, regExt.Name)
-				add(module, strings.TrimPrefix(regExt.Name, "xk6-output-"))
-				add(module, strings.TrimPrefix(regExt.Name, "xk6-"))
+				add(path, regExt.Name)
+				add(path, strings.TrimPrefix(regExt.Name, "xk6-output-"))
+				add(path, strings.TrimPrefix(regExt.Name, "xk6-"))
 			}
 
 			if typ == "JavaScript" {
-				add(module, "k6/x/"+strings.TrimPrefix(regExt.Name, "xk6-"))
+				add(path, "k6/x/"+strings.TrimPrefix(regExt.Name, "xk6-"))
 
 				if idx := strings.LastIndex(regExt.Name, "-"); idx >= 0 && idx < len(regExt.Name) {
-					add(module, "k6/x/"+regExt.Name[idx+1:])
+					add(path, "k6/x/"+regExt.Name[idx+1:])
 				}
 			}
 		}
 	}
 
-	return ings
+	return mods
 }

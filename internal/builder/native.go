@@ -12,12 +12,10 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"path/filepath"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/afero"
-	"github.com/szkiba/k6x/internal/resolver"
+	"github.com/szkiba/k6x/internal/dependency"
 	"go.k6.io/xk6"
 )
 
@@ -71,9 +69,9 @@ func newNativeBuilder() (*nativeBuilder, error) {
 
 func (b *nativeBuilder) Build(
 	ctx context.Context,
-	ings resolver.Ingredients,
-	dir string,
-	afs afero.Fs,
+	goenv *GOEnv,
+	mods dependency.Modules,
+	out io.Writer,
 ) error {
 	b.logFlags = log.Flags()
 	b.logOutput = log.Writer()
@@ -89,7 +87,11 @@ func (b *nativeBuilder) Build(
 
 	defer b.close()
 
-	return b.build(ctx, ings, dir, afs)
+	if goenv == nil {
+		goenv = new(GOEnv).FromRuntime()
+	}
+
+	return b.build(ctx, goenv, mods, out)
 }
 
 func (b *nativeBuilder) close() {
@@ -103,30 +105,52 @@ func (b *nativeBuilder) close() {
 
 func (b *nativeBuilder) build(
 	ctx context.Context,
-	ings resolver.Ingredients,
-	dir string,
-	afs afero.Fs,
+	goenv *GOEnv,
+	mods dependency.Modules,
+	out io.Writer,
 ) error {
 	logrus.Debug("Building new k6 binary (native)")
 
-	if err := afs.MkdirAll(dir, 0o750); err != nil {
-		return err
-	}
-
 	builder := new(xk6.Builder)
 
-	if k6, has := ings.K6(); has {
+	builder.Cgo = goenv.CGO
+	builder.OS = goenv.GOOS
+	builder.Arch = goenv.GOARCH
+
+	if k6, has := mods.K6(); has {
 		builder.K6Version = k6.Tag()
 	}
 
-	for _, ing := range ings.Extensions() {
+	for _, ing := range mods.Extensions() {
 		builder.Extensions = append(builder.Extensions,
 			xk6.Dependency{
-				PackagePath: ing.Module,
+				PackagePath: ing.Path,
 				Version:     ing.Tag(),
 			},
 		)
 	}
 
-	return builder.Build(ctx, filepath.Join(dir, "k6"))
+	tmp, err := os.CreateTemp("", "k6")
+	if err != nil {
+		return err
+	}
+
+	if err = tmp.Close(); err != nil {
+		return err
+	}
+
+	if err = builder.Build(ctx, tmp.Name()); err != nil {
+		return err
+	}
+
+	tmp, err = os.Open(tmp.Name())
+	if err != nil {
+		return err
+	}
+
+	defer deferredClose(tmp, &err)
+
+	_, err = io.Copy(out, tmp)
+
+	return err
 }

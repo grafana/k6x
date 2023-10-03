@@ -11,15 +11,30 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"runtime"
 
-	"github.com/spf13/afero"
-	"github.com/szkiba/k6x/internal/resolver"
+	"github.com/szkiba/k6x/internal/dependency"
 )
 
 var errNoEngine = errors.New("no suitable builder")
 
+type GOEnv struct {
+	GOOS   string
+	GOARCH string
+	CGO    bool
+}
+
+func (g *GOEnv) FromRuntime() *GOEnv {
+	g.GOOS = runtime.GOOS
+	g.GOARCH = runtime.GOARCH
+	g.CGO = false
+
+	return g
+}
+
 type Builder interface {
-	Build(ctx context.Context, ings resolver.Ingredients, dir string, afs afero.Fs) error
+	Build(ctx context.Context, goenv *GOEnv, mods dependency.Modules, out io.Writer) error
 }
 
 func New(engines ...Engine) (Builder, error) {

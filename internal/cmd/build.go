@@ -6,6 +6,9 @@ package cmd
 
 import (
 	"context"
+	"os"
+	"path/filepath"
+	"runtime"
 
 	"github.com/spf13/afero"
 	"github.com/szkiba/k6x/internal/builder"
@@ -77,7 +80,11 @@ func ensureK6(deps dependency.Dependencies) {
 	}
 }
 
-func addDeps(ctx context.Context, res resolver.Resolver, deps, req dependency.Dependencies) error {
+func addDeps(
+	ctx context.Context,
+	res resolver.Resolver,
+	deps, req dependency.Dependencies,
+) error {
 	if len(req) == 0 {
 		return nil
 	}
@@ -148,7 +155,7 @@ func build(
 
 	ensureK6(deps)
 
-	ings, err := res.Resolve(ctx, deps)
+	mods, err := res.Resolve(ctx, deps)
 	if err != nil {
 		return err
 	}
@@ -158,7 +165,27 @@ func build(
 		return err
 	}
 
-	err = b.Build(ctx, ings, opts.dirs.bin, opts.dirs.fs)
+	afs := opts.dirs.fs
+
+	if err = afs.MkdirAll(opts.dirs.bin, 0o750); err != nil {
+		return err
+	}
+
+	fname := filepath.Join(opts.dirs.bin, "k6")
+	if runtime.GOOS == "windows" {
+		fname += ".exe"
+	}
+
+	var file afero.File
+
+	file, err = afs.OpenFile(fname, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o755) //nolint:forbidigo
+	if err != nil {
+		return err
+	}
+
+	defer deferredClose(file, &err)
+
+	err = b.Build(ctx, nil, mods, file)
 	if err != nil {
 		return err
 	}

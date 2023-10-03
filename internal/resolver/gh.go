@@ -38,25 +38,25 @@ func NewWithGitHubClient(client *github.Client) Resolver {
 func (res *ghResolver) Resolve(
 	ctx context.Context,
 	deps dependency.Dependencies,
-) (Ingredients, error) {
-	ings, err := res.resolveModules(ctx, deps)
+) (dependency.Modules, error) {
+	mods, err := res.resolveModules(ctx, deps)
 	if err != nil {
 		// partially resolved idgredients returned also with error
-		return ings, err
+		return mods, err
 	}
 
-	if err := res.resolveReleases(ctx, deps, ings); err != nil {
+	if err := res.resolveReleases(ctx, deps, mods); err != nil {
 		// partially resolved idgredients returned also with error
-		return ings, err
+		return mods, err
 	}
 
-	return ings, nil
+	return mods, nil
 }
 
 func (res *ghResolver) resolveModules(
 	ctx context.Context,
 	deps dependency.Dependencies,
-) (Ingredients, error) {
+) (dependency.Modules, error) {
 	content, _, _, err := res.client.Repositories.GetContents(
 		ctx,
 		"grafana",
@@ -79,28 +79,28 @@ func (res *ghResolver) resolveModules(
 		return nil, err
 	}
 
-	ings := make(Ingredients)
+	mods := make(dependency.Modules)
 
-	ings[k6] = k6DefaultIngredient
+	mods[k6] = &dependency.Module{Name: k6}
 
-	for name, ing := range reg.toIngredients() {
+	for name, mod := range reg.toModules() {
 		if _, ok := deps[name]; ok {
-			ings[name] = ing
+			mods[name] = mod
 		}
 	}
 
-	err = checkForMisingModules(deps, ings)
+	err = checkForMisingPaths(deps, mods)
 
 	// partially resolved idgredients returned also with error
-	return ings, err
+	return mods, err
 }
 
-func checkForMisingModules(deps dependency.Dependencies, ings Ingredients) error {
+func checkForMisingPaths(deps dependency.Dependencies, ings dependency.Modules) error {
 	missing := make(dependency.Dependencies)
 
 	for _, dep := range deps {
-		ing, ok := ings[dep.Name]
-		if !ok || (ing.Name != k6 && len(ing.Module) == 0) {
+		mod, ok := ings[dep.Name]
+		if !ok || (mod.Name != k6 && len(mod.Path) == 0) {
 			missing[dep.Name] = dep
 		}
 	}
@@ -112,12 +112,12 @@ func checkForMisingModules(deps dependency.Dependencies, ings Ingredients) error
 	return fmt.Errorf("%w: unable to resolve module: %s", ErrResolver, missing)
 }
 
-func checkForMisingVersions(deps dependency.Dependencies, ings Ingredients) error {
+func checkForMisingVersions(deps dependency.Dependencies, mods dependency.Modules) error {
 	missing := make(dependency.Dependencies)
 
 	for _, dep := range deps {
-		ing, ok := ings[dep.Name]
-		if !ok || !dep.Check(ing.Version) {
+		mod, ok := mods[dep.Name]
+		if !ok || !dep.Check(mod.Version) {
 			missing[dep.Name] = dep
 		}
 	}

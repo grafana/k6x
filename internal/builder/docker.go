@@ -10,16 +10,13 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/afero"
-	"github.com/szkiba/k6x/internal/resolver"
+	"github.com/szkiba/k6x/internal/dependency"
 
 	"github.com/docker/cli/cli/connhelper"
 	"github.com/docker/docker/api/types"
@@ -36,17 +33,17 @@ const (
 	workdirPath  = "/home/k6x"
 )
 
-func (b *dockerBuilder) cmdline(ings resolver.Ingredients) ([]string, []string) {
-	args := make([]string, 0, 2*len(ings))
+func (b *dockerBuilder) cmdline(goenv *GOEnv, mods dependency.Modules) ([]string, []string) {
+	args := make([]string, 0, 2*len(mods))
 	env := make([]string, 0, 1)
 
-	env = append(env, "GOOS="+runtime.GOOS)
-	env = append(env, "GOARCH="+runtime.GOARCH)
+	env = append(env, "GOOS="+goenv.GOOS)
+	env = append(env, "GOARCH="+goenv.GOARCH)
 
 	args = append(args, "build")
 
-	for _, ing := range ings {
-		args = append(args, "--with", ing.Name+" "+ing.Tag())
+	for _, mod := range mods {
+		args = append(args, "--with", mod.Name+" "+mod.Tag())
 	}
 
 	return args, env
@@ -136,8 +133,12 @@ func (b *dockerBuilder) pull(ctx context.Context) error {
 	return nil
 }
 
-func (b *dockerBuilder) start(ctx context.Context, ings resolver.Ingredients) (string, error) {
-	cmd, env := b.cmdline(ings)
+func (b *dockerBuilder) start(
+	ctx context.Context,
+	goenv *GOEnv,
+	mods dependency.Modules,
+) (string, error) {
+	cmd, env := b.cmdline(goenv, mods)
 
 	logrus.Debugf("Executing %s", strings.Join(cmd, " "))
 
@@ -207,7 +208,7 @@ func (b *dockerBuilder) log(ctx context.Context, id string) error {
 	return err
 }
 
-func (b *dockerBuilder) copy(ctx context.Context, id string, dir string, afs afero.Fs) error {
+func (b *dockerBuilder) copy(ctx context.Context, id string, out io.Writer) error {
 	binary, _, err := b.cli.CopyFromContainer(ctx, id, workdirPath)
 	if err != nil {
 		return err
@@ -226,25 +227,11 @@ func (b *dockerBuilder) copy(ctx context.Context, id string, dir string, afs afe
 		}
 
 		if header.Typeflag == tar.TypeReg {
-			fname := filepath.Join(dir, filepath.Base(header.Name))
-			if runtime.GOOS == "windows" {
-				fname += ".exe"
+			if !strings.HasPrefix(filepath.Base(header.Name), "k6") {
+				continue
 			}
 
-			var file afero.File
-
-			file, err = afs.OpenFile(
-				fname,
-				os.O_CREATE|os.O_WRONLY|os.O_TRUNC, //nolint:forbidigo
-				fs.FileMode(header.Mode)|fs.ModePerm,
-			)
-			if err != nil {
-				return err
-			}
-
-			defer deferredClose(file, &err)
-
-			_, err = io.Copy(file, archive) //nolint:gosec
+			_, err = io.Copy(out, archive) //nolint:gosec
 			if err != nil {
 				return err
 			}
@@ -256,32 +243,32 @@ func (b *dockerBuilder) copy(ctx context.Context, id string, dir string, afs afe
 
 func (b *dockerBuilder) Build(
 	ctx context.Context,
-	ings resolver.Ingredients,
-	dir string,
-	afs afero.Fs,
+	goenv *GOEnv,
+	mods dependency.Modules,
+	out io.Writer,
 ) error {
 	defer b.close()
 
-	return b.build(ctx, ings, dir, afs)
+	if goenv == nil {
+		goenv = new(GOEnv).FromRuntime()
+	}
+
+	return b.build(ctx, goenv, mods, out)
 }
 
 func (b *dockerBuilder) build(
 	ctx context.Context,
-	ings resolver.Ingredients,
-	dir string,
-	afs afero.Fs,
+	goenv *GOEnv,
+	mods dependency.Modules,
+	out io.Writer,
 ) error {
 	logrus.Debug("Building new k6 binary (docker)")
-
-	if err := afs.MkdirAll(dir, 0o750); err != nil {
-		return err
-	}
 
 	if err := b.pull(ctx); err != nil {
 		return err
 	}
 
-	id, err := b.start(ctx, ings)
+	id, err := b.start(ctx, goenv, mods)
 	if err != nil {
 		return err
 	}
@@ -303,7 +290,7 @@ func (b *dockerBuilder) build(
 		return err
 	}
 
-	if err = b.copy(ctx, id, dir, afs); err != nil {
+	if err = b.copy(ctx, id, out); err != nil {
 		return err
 	}
 

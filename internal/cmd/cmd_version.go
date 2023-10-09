@@ -45,9 +45,10 @@ func versionCommand(
 
 //nolint:gochecknoglobals
 var versionUsage = `Launcher Flags:
-  --bin-dir path  cache folder for k6 binary (default: {{.bin}})
-  --builder list  comma separated list of builders (default: {{.builders}})
-  --clean         remove cached k6 binary
-  --dry           do not run k6 command
+  --bin-dir path    cache folder for k6 binary (default: {{.bin}})
+  --cache-dir path  set cache base directory
+  --builder list    comma separated list of builders (default: {{.builders}})
+  --clean           remove cached k6 binary
+  --dry             do not run k6 command
 
 `

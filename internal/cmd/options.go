@@ -93,7 +93,8 @@ func cleanargv(argv []string) []string {
 			continue
 		}
 
-		if arg == "--bin-dir" || arg == "--builder" || arg == "--with" || arg == "--filter" {
+		if arg == "--bin-dir" || arg == "--cache-dir" || arg == "--builder" || arg == "--with" ||
+			arg == "--filter" {
 			i++
 			continue
 		}
@@ -120,6 +121,10 @@ func newFlagSet(opts *options) *pflag.FlagSet {
 	if len(filter) == 0 {
 		filter = "[*]"
 	}
+
+	// directories
+	flag.StringVar(&opts.dirs.bin, "bin-dir", "", "")
+	flag.StringVar(&opts.dirs.base, "cache-dir", "", "")
 
 	flag.StringVar(&opts.filter, "filter", filter, "")
 
@@ -179,10 +184,8 @@ func getopts(argv []string, afs afero.Fs) (*options, error) {
 	opts := new(options)
 	opts.appname = _appname
 
-	opts.dirs, err = getdirs(opts.appname, afs)
-	if err != nil {
-		return nil, err
-	}
+	opts.dirs = new(directories)
+	opts.dirs.fs = afs
 
 	opts.argv = cleanargv(argv)
 	opts.args = make([]string, len(argv))
@@ -197,7 +200,6 @@ func getopts(argv []string, afs afero.Fs) (*options, error) {
 
 	builders := flag.StringSlice("builder", strings.Split(engines, ","), "")
 	platforms := flag.StringSlice("platform", strings.Split(defaultPlatforms(), ","), "")
-	bin := flag.String("bin-dir", "", "")
 	with := flag.StringArray("with", []string{}, "")
 
 	if err = flag.Parse(opts.args); err != nil {
@@ -206,12 +208,9 @@ func getopts(argv []string, afs afero.Fs) (*options, error) {
 
 	opts.args = flag.Args()
 
-	if len(*bin) == 0 {
-		if opts.build() {
-			opts.dirs.bin = "."
-		}
-	} else {
-		opts.dirs.bin = *bin
+	err = fixdirs(opts)
+	if err != nil {
+		return nil, err
 	}
 
 	for _, val := range *builders {
@@ -328,25 +327,35 @@ func bindir(appname string, basedir string, afs afero.Fs) string {
 	return dir
 }
 
-func getdirs(appname string, afs afero.Fs) (*directories, error) {
+func fixdirs(opts *options) error {
+	if len(opts.dirs.bin) == 0 && opts.build() {
+		opts.dirs.bin = "."
+	}
+
 	var err error
-	dirs := new(directories)
 
-	dirs.fs = afs
+	dirs := opts.dirs
 
-	dirs.base = filepath.Join(xdg.CacheHome, appname)
+	if len(dirs.base) == 0 {
+		dir := os.Getenv(strings.ToUpper(opts.appname) + "_CACHE_DIR") //nolint:forbidigo
+		if len(dir) != 0 {
+			dirs.base = dir
+		} else {
+			dirs.base = filepath.Join(xdg.CacheHome, opts.appname)
+		}
+	}
+
 	dirs.http = filepath.Join(dirs.base, "http")
-	dirs.bin = bindir(appname, dirs.base, afs)
 
-	if err = afs.MkdirAll(dirs.bin, 0o750); err != nil {
-		return nil, err
+	if len(dirs.bin) == 0 {
+		dirs.bin = bindir(opts.appname, dirs.base, dirs.fs)
 	}
 
-	if err = afs.MkdirAll(dirs.http, 0o750); err != nil {
-		return nil, err
+	if err = dirs.fs.MkdirAll(dirs.bin, 0o750); err != nil {
+		return err
 	}
 
-	return dirs, nil
+	return dirs.fs.MkdirAll(dirs.http, 0o750)
 }
 
 //nolint:forbidigo

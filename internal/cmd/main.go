@@ -148,6 +148,7 @@ Launcher Commands:
 
 Launcher Flags:
   --bin-dir path     cache folder for k6 binary (default: {{.bin}})
+  --cache-dir path   set cache base directory
   --with dependency  additional dependency and version constraints
   --filter expr      jmespath syntax extension registry filter (default: [*])
   --builder list     comma separated list of builders (default: {{.builders}})

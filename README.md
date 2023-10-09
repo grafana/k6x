@@ -78,7 +78,7 @@ Read the version constraints syntax in the [Version Constraints](#version-constr
 
 ### Cache
 
-Reusable artifacts (k6 binary, HTTP responses) are stored in the subdirectory `k6x` under the directory defined by the `XDG_CACHE_HOME` environment variable. The default of `XDG_CACHE_HOME` depends on the operating system (Windows: `%LOCALAPPDATA%\cache`, Linux: `~/.cache`, macOS: `~/Library/Caches`)
+Reusable artifacts (k6 binary, HTTP responses) are stored in the subdirectory `k6x` under the directory defined by the `XDG_CACHE_HOME` environment variable. The default of `XDG_CACHE_HOME` depends on the operating system (Windows: `%LOCALAPPDATA%\cache`, Linux: `~/.cache`, macOS: `~/Library/Caches`). The default cache directory can be changed using the `K6X_CACHE_DIR` environment variable or the `--cache-dir` flag.
 
 The directory where k6x stores the compiled k6 binary can be specified in the `K6X_BIN_DIR` environment variable. If it is missing, the `.k6x` directory is used if it exists in the current working directory, otherwise the k6 binary is stored in the cache directory described above. In addition, the location of the directory used to store k6 can also be specified using the `--bin-dir` command line option. See the [Flags](#flags) section for more information.
 
@@ -97,6 +97,8 @@ The k6 subcommands are extended with some global command line flags related to b
   ```
   k6x run --bin-dir ./custom-k6 script.js
   ```
+- `--cache-dir path`  set cache base directory (it will overwrite the value of `K6X_CACHE_DIR`)
+
 - `--with dependency`  you can specify additional dependencies and version constraints, the form of the `dependency` is the same as that used in the `"use k6 with"` pragma (practically the same as the string after the `use k6 with`)
 
   ```

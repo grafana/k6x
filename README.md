@@ -14,13 +14,9 @@ The build step uses a [Docker Engine](https://docs.docker.com/engine/) (even a [
 
 The (experimental) [builder service](#builder-service) makes the use of extensions even easier, no tools need to be installed except for k6x. The [builder service](#builder-service) builds the k6 binary on the fly.
 
-**asciicast (native builder)**
+**asciicast**
 
-[![asciicast](https://asciinema.org/a/610337.svg)](https://asciinema.org/a/610337)
-
-**asciicast (docker builder)**
-
-[![asciicast](https://asciinema.org/a/611493.svg)](https://asciinema.org/a/611493)
+[![asciicast](https://asciinema.org/a/612785.svg)](https://asciinema.org/a/612785)
 
 ## Prerequisites
 
@@ -106,7 +102,13 @@ The k6 subcommands are extended with some global command line flags related to b
   ```
   k6x run --with k6/x/mock script.js
   ```
-  
+
+- `--filter expr` [jmespath](https://jmespath.org/) syntax extension registry [filter](#filtering) (default: `[*]`)
+
+  ```
+  k6x run --filter "[?contains(tiers,'Official')]" script.js
+  ```
+
 - `--builder list` a comma-separated list of builders (default: `service,native,docker`), available builders:
   - `service` this builder uses the builder service if it is specified (in the `K6X_BUILDER_SERVICE` environment variable), otherwise the next builder will be used without error
   - `native` this builder uses the installed go compiler if available, otherwise the next builder is used without error
@@ -128,6 +130,7 @@ Some new subcommands will also appear, which are related to building the k6 bina
   Flags:
     -o, --out name  output extension name
     --bin-dir path  folder for custom k6 binary (default: .)
+    --filter expr   jmespath syntax extension registry filter (default: [*])
     --builder list  comma separated list of builders (default: service,native,docker)
     -h, --help      display this help
   ```
@@ -151,6 +154,7 @@ Some new subcommands will also appear, which are related to building the k6 bina
 
   Flags:
     --addr address  listen address (default: 127.0.0.1:8787)
+    --filter expr   jmespath syntax extension registry filter (default: [*])
     --builder list  comma separated list of builders
 
     -h, --help      display this help
@@ -165,6 +169,7 @@ Some new subcommands will also appear, which are related to building the k6 bina
     --platform list    comma separated list of platforms (default: linux/amd64,linux/arm64,windows/amd64,windows/arm64,darwin/amd64,darwin/arm64)
     --stars number     minimum number of repository stargazers (default: 5)
     --with dependency  dependency and version constraints (default: latest version of k6 and registered extensions)
+    --filter expr      jmespath syntax extension registry filter (default: [*])
     --builder list     comma separated list of builders (default: service,local,docker)
     -h, --help         display this help
   ```
@@ -190,6 +195,24 @@ The image automatically provides  [k6](https://k6.io) with the [extensions](http
 The build step is done using the go compiler included in the image. The partial results of the go compilation and build steps are saved to the volume in the `/cache` path (this is where the go cache and the go module cache are placed). By making this volume persistent, the time required for the build step can be significantly reduced.
 
 The k6x docker builder (`--builder docker`) also uses this docker image. It creates a local volume called `k6x-cache` and mounts it to the `/cache` path. Thanks to this, the docker build runs almost at the same speed as the native build (apart from the first build).
+
+### Filtering
+
+In certain runtime environments, the use of arbitrary extensions is not allowed. There is a need to limit the extensions that can be used.
+
+This use case can be solved most flexibly by narrowing down the extension registry. The content of the [extension registry](https://github.com/grafana/k6-docs/blob/main/src/data/doc-extensions/extensions.json) can be narrowed using a [jmespath](https://jmespath.org/) syntax filter expression. Extensions can be filtered based on any property. 
+
+*allow only officially supported extensions*
+
+```
+k6x --filter "[?contains(tiers,'Official')]" run script.js
+```
+
+*allow only cloud enabled extensions*
+
+```
+k6x --filter "[?cloudEnabled == true]" run script.js
+```
 
 ## Appendix
 
@@ -359,6 +382,6 @@ https://example.com/linux/amd64/k6@v0.46.0,dashboard@v0.6.0,k6/x/faker@v0.2.2,to
 
 Based on the platform parameters (`goos`, `goarch`) and dependencies, the service prepares the k6 binary.
 
-Since the response (the k6 binary) depends only on the request path, it can be easily cached. The service therefore sets a sufficiently long caching period (at least one year) in the response, as well as the usual cache headers (e.g. `ETag`). By placing a caching proxy in front of the service, it can be ensured that the actual k6 binary build takes place only once for each parameter combination.
+Since the response (the k6 binary) depends only on the request path, it can be easily cached. The service therefore sets a sufficiently long caching period (at least three month) in the response, as well as the usual cache headers (e.g. `ETag`). By placing a caching proxy in front of the service, it can be ensured that the actual k6 binary build takes place only once for each parameter combination.
 
 The advantage of the solution is that the k6 binary is created on the fly, only for the parameter combinations that are actually used. Since the service preserves the go cache between builds, a specific build happens quickly enough.

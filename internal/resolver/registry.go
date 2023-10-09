@@ -6,9 +6,11 @@
 package resolver
 
 import (
+	"encoding/json"
 	"net/url"
 	"strings"
 
+	"github.com/jmespath/go-jmespath"
 	"github.com/szkiba/k6x/internal/dependency"
 )
 
@@ -20,6 +22,44 @@ type registeredExtension struct {
 	Name string   `json:"name,omitempty"`
 	URL  string   `json:"url,omitempty"`
 	Type []string `json:"type,omitempty"`
+}
+
+func applyFilter(src []byte, filter *jmespath.JMESPath) ([]byte, error) {
+	if filter == nil {
+		return src, nil
+	}
+
+	loose := new(struct {
+		Extensions interface{} `json:"extensions"`
+	})
+
+	if err := json.Unmarshal(src, loose); err != nil {
+		return nil, err
+	}
+
+	data, err := filter.Search(loose.Extensions)
+	if err != nil {
+		return nil, err
+	}
+
+	loose.Extensions = data
+
+	return json.Marshal(loose)
+}
+
+func parseExtensionRegistry(src []byte, filter *jmespath.JMESPath) (*extensionRegistry, error) {
+	bin, err := applyFilter(src, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	reg := new(extensionRegistry)
+
+	if err := json.Unmarshal(bin, reg); err != nil {
+		return nil, err
+	}
+
+	return reg, nil
 }
 
 func (reg *extensionRegistry) toModules() dependency.Modules {

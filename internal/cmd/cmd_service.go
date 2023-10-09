@@ -82,7 +82,9 @@ Usage:
   {{.appname}} service [flags]
 
 Flags:
-  --addr address  listen address (default: 127.0.0.1:8787)
+  --addr address     listen address (default: 127.0.0.1:8787)
+  --filter expr      jmespath syntax extension registry filter (default: [*])
+  --builder list     comma separated list of builders (default: {{.builders}})
 
   -h, --help      display this help
 `

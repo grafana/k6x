@@ -45,6 +45,8 @@ func main(
 		return exitErr, err
 	}
 
+	defer opts.spinner.Stop()
+
 	initLogger(opts)
 
 	c := make(chan os.Signal, 1)
@@ -56,7 +58,11 @@ func main(
 		}
 	}()
 
-	res := resolver.NewWithCacheDir(opts.dirs.http)
+	res, err := resolver.New(opts.dirs.http, opts.filter)
+	if err != nil {
+		return exitErr, err
+	}
+
 	cmd := filepath.Join(opts.dirs.bin, k6Binary)
 
 	if opts.deps() {
@@ -135,12 +141,15 @@ const (
 
 	otherUsage = `
 Launcher Commands:
-  deps   Print k6 and extension dependencies
-  build  Build custom k6 binary with extensions
+  deps    Print k6 and extension dependencies
+  build   Build custom k6 binary with extensions
+  service Start k6x builder service
+  preload Preload (go) build cache
 
 Launcher Flags:
   --bin-dir path     cache folder for k6 binary (default: {{.bin}})
   --with dependency  additional dependency and version constraints
+  --filter expr      jmespath syntax extension registry filter (default: [*])
   --builder list     comma separated list of builders (default: {{.builders}})
   --clean            remove cached k6 binary
   --dry              do not run k6 command

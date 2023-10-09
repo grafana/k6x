@@ -47,6 +47,7 @@ type options struct {
 	clean   bool
 	dry     bool
 	engines []builder.Engine
+	filter  string
 	out     []string
 	with    dependency.Dependencies
 	addr    string
@@ -92,7 +93,7 @@ func cleanargv(argv []string) []string {
 			continue
 		}
 
-		if arg == "--bin-dir" || arg == "--builder" || arg == "--with" {
+		if arg == "--bin-dir" || arg == "--builder" || arg == "--with" || arg == "--filter" {
 			i++
 			continue
 		}
@@ -114,6 +115,13 @@ func newFlagSet(opts *options) *pflag.FlagSet {
 	flag.BoolVar(&opts.nocolor, "no-color", false, "")
 
 	flag.StringArrayVarP(&opts.out, "out", "o", []string{}, "")
+
+	filter := os.Getenv(strings.ToUpper(opts.appname) + "_FILTER") //nolint:forbidigo
+	if len(filter) == 0 {
+		filter = "[*]"
+	}
+
+	flag.StringVar(&opts.filter, "filter", filter, "")
 
 	// deps command
 	flag.BoolVar(&opts.resolve, "resolve", false, "")

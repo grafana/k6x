@@ -55,6 +55,7 @@ Flags:
   --platform list    comma separated list of platforms (default: {{.platforms}})
   --stars number     minimum number of repository stargazers (default: 5)
   --with dependency  dependency and version constraints (default: latest version of k6 and registered extensions)
+  --filter expr      jmespath syntax extension registry filter (default: [*])
   --builder list     comma separated list of builders (default: {{.builders}})
   -h, --help         display this help
 `

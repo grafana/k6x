@@ -12,6 +12,7 @@ require (
 	github.com/fatih/color v1.15.0
 	github.com/google/go-github/v55 v55.0.0
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79
+	github.com/jmespath/go-jmespath v0.4.0
 	github.com/magefile/mage v1.15.0
 	github.com/mattn/go-colorable v0.1.13
 	github.com/mattn/go-isatty v0.0.18

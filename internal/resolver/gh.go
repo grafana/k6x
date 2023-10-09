@@ -7,7 +7,6 @@ package resolver
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -17,27 +16,34 @@ import (
 	"github.com/google/go-github/v55/github"
 	"github.com/gregjones/httpcache"
 	"github.com/gregjones/httpcache/diskcache"
+	"github.com/jmespath/go-jmespath"
 	"github.com/szkiba/k6x/internal/dependency"
 )
 
 type ghResolver struct {
 	client *github.Client
+	filter *jmespath.JMESPath
 }
 
-func NewWithCacheDir(cachedir string) Resolver {
+func New(cachedir string, filter string) (Resolver, error) {
 	transport := httpcache.NewTransport(diskcache.New(cachedir))
 
 	client := &http.Client{Transport: newTransport(transport)}
 
-	return NewWithHTTPClient(client)
-}
+	res := new(ghResolver)
 
-func NewWithHTTPClient(client *http.Client) Resolver {
-	return NewWithGitHubClient(github.NewClient(client))
-}
+	res.client = github.NewClient(client)
 
-func NewWithGitHubClient(client *github.Client) Resolver {
-	return &ghResolver{client: client}
+	if len(filter) != 0 {
+		query, err := jmespath.Compile(filter)
+		if err != nil {
+			return nil, err
+		}
+
+		res.filter = query
+	}
+
+	return res, nil
 }
 
 func (res *ghResolver) Resolve(
@@ -75,9 +81,8 @@ func (res *ghResolver) getRegistry(ctx context.Context) (*extensionRegistry, err
 		return nil, err
 	}
 
-	reg := new(extensionRegistry)
-
-	if err = json.Unmarshal([]byte(str), reg); err != nil {
+	reg, err := parseExtensionRegistry([]byte(str), res.filter)
+	if err != nil {
 		return nil, err
 	}
 

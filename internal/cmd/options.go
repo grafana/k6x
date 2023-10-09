@@ -50,6 +50,7 @@ type options struct {
 	filter  string
 	out     []string
 	with    dependency.Dependencies
+	reps    builder.Replacements
 	addr    string
 	args    []string
 	argv    []string
@@ -93,7 +94,8 @@ func cleanargv(argv []string) []string {
 			continue
 		}
 
-		if arg == "--bin-dir" || arg == "--cache-dir" || arg == "--builder" || arg == "--with" ||
+		if arg == "--bin-dir" || arg == "--cache-dir" || arg == "--builder" ||
+			arg == "--with" || arg == "--replace" ||
 			arg == "--filter" {
 			i++
 			continue
@@ -178,6 +180,66 @@ func parseWith(with []string) (dependency.Dependencies, error) {
 	return deps, nil
 }
 
+func parseReplace(replace []string) (builder.Replacements, error) {
+	reps := make(builder.Replacements)
+
+	for _, rep := range replace {
+		if len(rep) == 0 {
+			return nil, errInvalidReplace
+		}
+
+		parts := strings.SplitN(rep, "=", 2)
+		if len(parts) == 1 {
+			return nil, errInvalidReplace
+		}
+
+		name, path := parts[0], parts[1]
+
+		if strings.HasPrefix(path, ".") {
+			var err error
+
+			path, err = filepath.Abs(path)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		reps[name] = builder.NewReplacement(name, path)
+	}
+
+	return reps, nil
+}
+
+func parseBuilders(builders []string) ([]builder.Engine, error) {
+	all := make([]builder.Engine, 0, len(builders))
+
+	for _, val := range builders {
+		eng, err := builder.EngineString(val)
+		if err != nil {
+			return nil, err
+		}
+
+		all = append(all, eng)
+	}
+
+	return all, nil
+}
+
+func parsePlatforms(platforms []string) ([]*builder.Platform, error) {
+	all := make([]*builder.Platform, 0, len(platforms))
+
+	for _, val := range platforms {
+		platform, err := builder.ParsePlatform(val)
+		if err != nil {
+			return nil, err
+		}
+
+		all = append(all, platform)
+	}
+
+	return all, nil
+}
+
 func getopts(argv []string, afs afero.Fs) (*options, error) {
 	var err error
 
@@ -201,6 +263,7 @@ func getopts(argv []string, afs afero.Fs) (*options, error) {
 	builders := flag.StringSlice("builder", strings.Split(engines, ","), "")
 	platforms := flag.StringSlice("platform", strings.Split(defaultPlatforms(), ","), "")
 	with := flag.StringArray("with", []string{}, "")
+	replace := flag.StringArray("replace", []string{}, "")
 
 	if err = flag.Parse(opts.args); err != nil {
 		return nil, err
@@ -213,28 +276,25 @@ func getopts(argv []string, afs afero.Fs) (*options, error) {
 		return nil, err
 	}
 
-	for _, val := range *builders {
-		var eng builder.Engine
-		eng, err = builder.EngineString(val)
-		if err != nil {
-			return nil, err
-		}
-
-		opts.engines = append(opts.engines, eng)
+	if opts.engines, err = parseBuilders(*builders); err != nil {
+		return nil, err
 	}
 
-	for _, val := range *platforms {
-		var platform *builder.Platform
-		platform, err = builder.ParsePlatform(val)
-		if err != nil {
-			return nil, err
-		}
-
-		opts.platforms = append(opts.platforms, platform)
+	if opts.platforms, err = parsePlatforms(*platforms); err != nil {
+		return nil, err
 	}
 
 	if opts.with, err = parseWith(*with); err != nil {
 		return nil, err
+	}
+
+	if opts.reps, err = parseReplace(*replace); err != nil {
+		return nil, err
+	}
+
+	if len(opts.reps) > 0 {
+		opts.engines = []builder.Engine{builder.Native}
+		opts.clean = true
 	}
 
 	opts.spinner = getspinner(opts)
@@ -383,6 +443,7 @@ var (
 	errOneArg            = errors.New("accepts at most 1 arg")
 	errStdinNotSupported = errors.New("standard input is not supported")
 	errInvalidWith       = errors.New("invalid with flag value")
+	errInvalidReplace    = errors.New("invalid replace flag value")
 
 	k6NoArgOpts = []string{ //nolint:gochecknoglobals
 		"no-usage-report",

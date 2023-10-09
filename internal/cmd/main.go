@@ -19,6 +19,7 @@ import (
 	"github.com/mattn/go-colorable"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/afero"
+	"github.com/szkiba/k6x/internal/builder"
 	"github.com/szkiba/k6x/internal/resolver"
 )
 
@@ -46,6 +47,8 @@ func main(
 	}
 
 	defer opts.spinner.Stop()
+
+	ctx = builder.WithReplacements(ctx, opts.reps)
 
 	initLogger(opts)
 

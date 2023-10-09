@@ -107,17 +107,31 @@ The k6 subcommands are extended with some global command line flags related to b
 
 - `--filter expr` [jmespath](https://jmespath.org/) syntax extension registry [filter](#filtering) (default: `[*]`)
 
-  ```
-  k6x run --filter "[?contains(tiers,'Official')]" script.js
-  ```
+   ```
+   k6x run --filter "[?contains(tiers,'Official')]" script.js
+   ```
 
 - `--builder list` a comma-separated list of builders (default: `service,native,docker`), available builders:
   - `service` this builder uses the builder service if it is specified (in the `K6X_BUILDER_SERVICE` environment variable), otherwise the next builder will be used without error
   - `native` this builder uses the installed go compiler if available, otherwise the next builder is used without error
   - `docker` this builder uses Docker Engine, which can be local or remote (specified in `DOCKER_HOST` environment variable)
 
+    ```
+    k6x run --buider docker script.js
+    ```
+
+- `--replace name=path` replaces the module path, where `name` is the dependency/module name and `path` is a remote module path (version should be appended with `@`) or an absolute local file-system path (a path starting with `.` can also be used, which will be resolved to an absolute path). It implies the use of the `native` builder (`--builder native`) and clean flag (`--clean`)
+
+  *with local file-system path*
+
   ```
-  k6x run --buider docker script.js
+  k6x --replace k6/x/faker=../xk6-faker run script.js
+  ```
+
+  *with remote path*
+
+  ```
+  k6x --replace k6/x/faker=github.com/my-user/xk6-faker@latest run script.js
   ```
 
 ### Subcommands

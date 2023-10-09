@@ -124,6 +124,7 @@ func (b *nativeBuilder) build(
 	builder.Cgo = false
 	builder.OS = platform.OS
 	builder.Arch = platform.Arch
+	builder.Replacements = newReplacements(mods, replacementsFromContext(ctx))
 
 	if k6, has := mods.K6(); has {
 		builder.K6Version = k6.Tag()
@@ -162,4 +163,18 @@ func (b *nativeBuilder) build(
 	os.Remove(tmp.Name()) //nolint:errcheck,gosec
 
 	return err
+}
+
+func newReplacements(mods dependency.Modules, reps Replacements) []xk6.Replace {
+	replacements := make([]xk6.Replace, 0, len(reps))
+
+	for name, mod := range mods {
+		if rep, has := reps[name]; has {
+			old := xk6.ReplacementPath(mod.Path)
+			to := xk6.ReplacementPath(rep.Path)
+			replacements = append(replacements, xk6.Replace{Old: old, New: to})
+		}
+	}
+
+	return replacements
 }

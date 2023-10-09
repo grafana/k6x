@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/afero"
 	"github.com/szkiba/k6x/internal/builder"
 	"github.com/szkiba/k6x/internal/dependency"
@@ -111,13 +112,7 @@ func collectDependencies(
 		return nil, errStdinNotSupported
 	}
 
-	if sp := opts.spinner; sp.Enabled() {
-		sp.Stop()
-		sp.Suffix = " checking dependencies of " + script
-		sp.Start()
-
-		defer sp.Stop()
-	}
+	logrus.Info("search for dependencies")
 
 	deps := make(dependency.Dependencies)
 
@@ -145,25 +140,21 @@ func build(
 	res resolver.Resolver,
 	opts *options,
 ) error {
-	if sp := opts.spinner; sp.Enabled() {
-		sp.Stop()
-		sp.Suffix = " building k6 to " + opts.dirs.bin
-		sp.Start()
-
-		defer sp.Stop()
-	}
-
 	ensureK6(deps)
+
+	logrus.Info("resolving dependencies")
 
 	mods, err := res.Resolve(ctx, deps)
 	if err != nil {
 		return err
 	}
 
-	b, err := builder.New(opts.engines...)
+	b, err := builder.New(ctx, opts.engines...)
 	if err != nil {
 		return err
 	}
+
+	logrus.Infof("installing k6 (builder: %s, target: %s)", b.Engine().String(), opts.dirs.bin)
 
 	afs := opts.dirs.fs
 
@@ -187,10 +178,13 @@ func build(
 
 	err = b.Build(ctx, nil, mods, file)
 	if err != nil {
+		file.Close()      //nolint:gosec,errcheck
+		afs.Remove(fname) //nolint:gosec,errcheck
+
 		return err
 	}
 
-	return nil
+	return file.Close()
 }
 
 func exists(file string, afs afero.Fs) bool {

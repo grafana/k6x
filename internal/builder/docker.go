@@ -33,12 +33,12 @@ const (
 	workdirPath  = "/home/k6x"
 )
 
-func (b *dockerBuilder) cmdline(goenv *GOEnv, mods dependency.Modules) ([]string, []string) {
+func (b *dockerBuilder) cmdline(platform *Platform, mods dependency.Modules) ([]string, []string) {
 	args := make([]string, 0, 2*len(mods))
 	env := make([]string, 0, 1)
 
-	env = append(env, "GOOS="+goenv.GOOS)
-	env = append(env, "GOARCH="+goenv.GOARCH)
+	env = append(env, "GOOS="+platform.OS)
+	env = append(env, "GOARCH="+platform.Arch)
 
 	args = append(args, "build")
 
@@ -53,7 +53,7 @@ type dockerBuilder struct {
 	cli *client.Client
 }
 
-func newDockerBuilder() (*dockerBuilder, error) {
+func newDockerCLI() (*client.Client, error) {
 	opts := make([]client.Opt, 0, 2)
 
 	opts = append(opts, client.WithAPIVersionNegotiation())
@@ -77,12 +77,20 @@ func newDockerBuilder() (*dockerBuilder, error) {
 		opts = append(opts, client.FromEnv)
 	}
 
-	cli, err := client.NewClientWithOpts(opts...)
+	return client.NewClientWithOpts(opts...)
+}
+
+func newDockerBuilder(ctx context.Context) (Builder, bool, error) {
+	cli, err := newDockerCLI()
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
-	return &dockerBuilder{cli: cli}, nil
+	if _, err = cli.Ping(ctx); err != nil {
+		return nil, false, nil //nolint:nilerr
+	}
+
+	return &dockerBuilder{cli: cli}, true, nil
 }
 
 func (b *dockerBuilder) close() {
@@ -135,10 +143,10 @@ func (b *dockerBuilder) pull(ctx context.Context) error {
 
 func (b *dockerBuilder) start(
 	ctx context.Context,
-	goenv *GOEnv,
+	platform *Platform,
 	mods dependency.Modules,
 ) (string, error) {
-	cmd, env := b.cmdline(goenv, mods)
+	cmd, env := b.cmdline(platform, mods)
 
 	logrus.Debugf("Executing %s", strings.Join(cmd, " "))
 
@@ -241,24 +249,28 @@ func (b *dockerBuilder) copy(ctx context.Context, id string, out io.Writer) erro
 	return nil
 }
 
+func (b *dockerBuilder) Engine() Engine {
+	return Docker
+}
+
 func (b *dockerBuilder) Build(
 	ctx context.Context,
-	goenv *GOEnv,
+	platform *Platform,
 	mods dependency.Modules,
 	out io.Writer,
 ) error {
 	defer b.close()
 
-	if goenv == nil {
-		goenv = new(GOEnv).FromRuntime()
+	if platform == nil {
+		platform = RuntimePlatform()
 	}
 
-	return b.build(ctx, goenv, mods, out)
+	return b.build(ctx, platform, mods, out)
 }
 
 func (b *dockerBuilder) build(
 	ctx context.Context,
-	goenv *GOEnv,
+	platform *Platform,
 	mods dependency.Modules,
 	out io.Writer,
 ) error {
@@ -268,7 +280,7 @@ func (b *dockerBuilder) build(
 		return err
 	}
 
-	id, err := b.start(ctx, goenv, mods)
+	id, err := b.start(ctx, platform, mods)
 	if err != nil {
 		return err
 	}

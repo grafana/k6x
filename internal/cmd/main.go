@@ -77,6 +77,14 @@ func main(
 		return exitErr, err
 	}
 
+	if opts.service() {
+		return 0, serviceCommand(ctx, res, opts, stdout)
+	}
+
+	if opts.preload() {
+		return 0, preloadCommand(ctx, res, opts, stdout)
+	}
+
 	if opts.version() {
 		return versionCommand(ctx, cmd, res, opts, stdin, stdout, stderr)
 	}
@@ -96,23 +104,6 @@ func main(
 	return otherCommand(ctx, cmd, res, opts, stdin, stdout, stderr)
 }
 
-func initLogger(opts *options) {
-	level := logrus.InfoLevel
-
-	if opts.verbose {
-		level = logrus.DebugLevel
-	}
-
-	if opts.quiet {
-		level = logrus.WarnLevel
-	}
-
-	logrus.SetLevel(level)
-
-	logrus.SetFormatter(&logrus.TextFormatter{ForceColors: true})
-	logrus.SetOutput(colorable.NewColorableStdout())
-}
-
 func usage(out io.Writer, tmpl string, opts *options) error {
 	name := "usage"
 	if len(opts.args) > 1 {
@@ -120,7 +111,15 @@ func usage(out io.Writer, tmpl string, opts *options) error {
 	}
 	t := template.Must(template.New(name).Parse(tmpl))
 
-	return t.Execute(out, map[string]interface{}{"appname": opts.appname, "bin": opts.dirs.bin})
+	return t.Execute(
+		out,
+		map[string]interface{}{
+			"appname":   opts.appname,
+			"bin":       opts.dirs.bin,
+			"builders":  defaultBuilders(),
+			"platforms": defaultPlatforms(),
+		},
+	)
 }
 
 func usagelogo(out *os.File) { //nolint:forbidigo
@@ -142,7 +141,7 @@ Launcher Commands:
 Launcher Flags:
   --bin-dir path     cache folder for k6 binary (default: {{.bin}})
   --with dependency  additional dependency and version constraints
-  --builder list     comma separated list of builders (default: native,docker)
+  --builder list     comma separated list of builders (default: {{.builders}})
   --clean            remove cached k6 binary
   --dry              do not run k6 command
 `

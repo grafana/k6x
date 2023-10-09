@@ -16,4 +16,5 @@ var ErrResolver = errors.New("resolver error")
 
 type Resolver interface {
 	Resolve(ctx context.Context, dep dependency.Dependencies) (dependency.Modules, error)
+	Starred(ctx context.Context, stars int) (dependency.Modules, error)
 }

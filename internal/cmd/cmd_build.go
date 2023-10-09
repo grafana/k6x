@@ -41,7 +41,7 @@ Flags:
   -o, --out name     output extension name
   --bin-dir path     folder for custom k6 binary (default: {{.bin}})
   --with dependency  additional dependency and version constraints
-  --builder list     comma separated list of builders (default: native,docker)
+  --builder list     comma separated list of builders (default: {{.builders}})
   --no-color         disable colored output  
   -h, --help         display this help
 `

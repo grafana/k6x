@@ -12,6 +12,8 @@ k6x is a [k6](https://k6.io) launcher that automatically provides k6 with the [e
 
 The build step uses a [Docker Engine](https://docs.docker.com/engine/) (even a [remote one](#remote-docker)), so no other local tools (go, git, docker cli, etc.) are needed, just k6x. If [Go language toolkit is installed](https://go.dev/doc/install), the build step uses it instead of Docker Engine. In this case, Docker Engine is not needed and build will be faster.
 
+The (experimental) [builder service](#builder-service) makes the use of extensions even easier, no tools need to be installed except for k6x. The [builder service](#builder-service) builds the k6 binary on the fly.
+
 **asciicast (native builder)**
 
 [![asciicast](https://asciinema.org/a/610337.svg)](https://asciinema.org/a/610337)
@@ -23,6 +25,9 @@ The build step uses a [Docker Engine](https://docs.docker.com/engine/) (even a [
 ## Prerequisites
 
 - Either a [Go language toolkit](https://go.dev/doc/install) or a properly configured [Docker Engine](https://docs.docker.com/engine/install/) environment (e.g. `DOCKER_HOST` environment variable)
+
+> **Warning**
+> When using the [builder service](#builder-service), you no longer need either the [Docker Engine](https://docs.docker.com/engine/install/) or the [Go language toolkit](https://go.dev/doc/install) to use k6x.
 
 ## Usage
 
@@ -102,7 +107,8 @@ The k6 subcommands are extended with some global command line flags related to b
   k6x run --with k6/x/mock script.js
   ```
   
-- `--builder list` a comma-separated list of builders (default: `native,docker`), available builders:
+- `--builder list` a comma-separated list of builders (default: `service,native,docker`), available builders:
+  - `service` this builder uses the builder service if it is specified (in the `K6X_BUILDER_SERVICE` environment variable), otherwise the next builder will be used without error
   - `native` this builder uses the installed go compiler if available, otherwise the next builder is used without error
   - `docker` this builder uses Docker Engine, which can be local or remote (specified in `DOCKER_HOST` environment variable)
 
@@ -122,7 +128,7 @@ Some new subcommands will also appear, which are related to building the k6 bina
   Flags:
     -o, --out name  output extension name
     --bin-dir path  folder for custom k6 binary (default: .)
-    --builder list  comma separated list of builders (default: native,docker)
+    --builder list  comma separated list of builders (default: service,native,docker)
     -h, --help      display this help
   ```
 
@@ -136,6 +142,31 @@ Some new subcommands will also appear, which are related to building the k6 bina
     --json          use JSON output format
     --resolve       print resolved dependencies
     -h, --help      display this help  
+  ```
+
+- `service` start the [builder service](#builder-service)
+  ```
+  Usage:
+    k6x service [flags]
+
+  Flags:
+    --addr address  listen address (default: 127.0.0.1:8787)
+    --builder list  comma separated list of builders
+
+    -h, --help      display this help
+  ```
+
+- `preload` preload the build cache with popular extensions
+  ```
+  Usage:
+    k6x preload [flags]
+
+  Flags:
+    --platform list    comma separated list of platforms (default: linux/amd64,linux/arm64,windows/amd64,windows/arm64,darwin/amd64,darwin/arm64)
+    --stars number     minimum number of repository stargazers (default: 5)
+    --with dependency  dependency and version constraints (default: latest version of k6 and registered extensions)
+    --builder list     comma separated list of builders (default: service,local,docker)
+    -h, --help         display this help
   ```
 
 ### Help
@@ -258,3 +289,76 @@ major change is API breaking. For example,
 * `^0.0` is equivalent to `>=0.0.0 <0.1.0`
 * `^0` is equivalent to `>=0.0.0 <1.0.0`
 
+### Builder Service
+
+The k6x builder service is an HTTP service that generates a k6 binary with the extensions specified in the request. The service is included in the k6x binary, so it can be started using the `k6x service` command.
+
+The k6x builder service can be used independently, from the command line (e.g. using `curl` or `wget` commands), from a `web browser`, or from different subcommands of the k6x launcher as a builder called `service`.
+
+#### Usage from the command line
+
+The k6 binary can be easily built using wget , curl or other command-line http client by retrieving the appropriate builder service URL:
+
+*using wget*
+
+```
+wget --content-disposition https://example.com/linux/amd64/k6@v0.46.0,dashboard@v0.6.0,k6/x/faker@v0.2.2,top@v0.1.1
+```
+
+*using curl*
+
+```
+curl -OJ https://example.com/linux/amd64/k6@v0.46.0,dashboard@v0.6.0,k6/x/faker@v0.2.2,top@v0.1.1
+```
+
+#### Usage from k6x
+
+The builder service can be used from k6x using the `--builder service` flag:
+
+```
+k6x run --builder service script.js
+```
+
+k6x expects the address of the builder service in the environment variable called `K6X_BUILDER_SERVICE`. There is currently no default, it must be specified.
+
+#### Simplified command line usage
+
+In order to simplify use from the command line, the service also accepts version dependencies in any order. In this case, after unlocking the latest versions and sorting, the response will be an HTTP redirect.
+
+*using wget*
+
+```
+wget --content-disposition https://example.com/linux/amd64/top,k6/x/faker,dashboard
+```
+
+*using curl*
+
+```
+curl -OJL https://example.com/linux/amd64/top,k6/x/faker,dashboard
+```
+
+#### How It Works
+
+The service serves `HTTP GET` requests, with a well-defined path structure:
+
+```
+htps://example.com/goos/goarch/dependency-list
+```
+
+Where `goos` is the usual operating system name in the go language (e.g. `linux`, `windows`, `darwin`), `goarch` is the usual processor architecture in the go language (e.g. `amd64`, `arm64`). The `dependency-list` is a comma-separated list of dependencies, in the following form:
+
+```
+name@version
+```
+
+Where `name` is the name of the dependency and `version` is the version number according to [semver](https://semver.org/) (with an optional leading `v` character). The first item in the list is always the dependency named `k6`, and the other items are sorted alphabetically by name. For example:
+
+```
+https://example.com/linux/amd64/k6@v0.46.0,dashboard@v0.6.0,k6/x/faker@v0.2.2,top@v0.1.1
+```
+
+Based on the platform parameters (`goos`, `goarch`) and dependencies, the service prepares the k6 binary.
+
+Since the response (the k6 binary) depends only on the request path, it can be easily cached. The service therefore sets a sufficiently long caching period (at least one year) in the response, as well as the usual cache headers (e.g. `ETag`). By placing a caching proxy in front of the service, it can be ensured that the actual k6 binary build takes place only once for each parameter combination.
+
+The advantage of the solution is that the k6 binary is created on the fly, only for the parameter combinations that are actually used. Since the service preserves the go cache between builds, a specific build happens quickly enough.

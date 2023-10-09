@@ -30,25 +30,23 @@ func versionCommand(
 		return exitErr, err
 	}
 
+	opts.spinner.Stop()
+
 	if opts.help {
 		_ = usage(stdout, versionUsage, opts)
 	} else {
 		fmt.Fprintf(stdout, "%s %s (%s)\n", _appname, _version, cmd)
 	}
 
-	if opts.dry {
-		return 0, nil
-	}
-
 	opts.argv[0] = cmd
 
-	return exec(cmd, opts.argv, stdin, stdout, stderr)
+	return opts.exec(cmd, opts.argv, stdin, stdout, stderr)
 }
 
 //nolint:gochecknoglobals
 var versionUsage = `Launcher Flags:
   --bin-dir path  cache folder for k6 binary (default: {{.bin}})
-  --builder list  comma separated list of builders (default: native,docker)
+  --builder list  comma separated list of builders (default: {{.builders}})
   --clean         remove cached k6 binary
   --dry           do not run k6 command
 

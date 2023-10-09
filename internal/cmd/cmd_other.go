@@ -23,11 +23,7 @@ func otherCommand(
 		return exitErr, err
 	}
 
-	if opts.dry {
-		return 0, nil
-	}
-
 	opts.argv[0] = cmd
 
-	return exec(cmd, opts.argv, stdin, stdout, stderr)
+	return opts.exec(cmd, opts.argv, stdin, stdout, stderr)
 }

@@ -20,14 +20,13 @@ const (
 )
 
 type Module struct {
-	Name    string          `json:"name,omitempty"`
-	Version *semver.Version `json:"version,omitempty"`
-	Path    string          `json:"path,omitempty"`
+	*Artifact
+	Path string `json:"path,omitempty"`
 }
 
 func NewModule(name, version, path string) (*Module, error) {
 	var err error
-	mod := new(Module)
+	mod := &Module{Artifact: new(Artifact)}
 
 	mod.Name = name
 	mod.Path = path
@@ -57,16 +56,6 @@ func (mod *Module) String() string {
 	buff.WriteRune(' ')
 	buff.WriteString(mod.Path)
 	buff.WriteRune(' ')
-	buff.WriteString(mod.Tag())
-
-	return buff.String()
-}
-
-func (mod *Module) Ref() string {
-	var buff strings.Builder
-
-	buff.WriteString(mod.Name)
-	buff.WriteRune('@')
 	buff.WriteString(mod.Tag())
 
 	return buff.String()
@@ -114,8 +103,8 @@ func (mods Modules) Extensions() []*Module {
 func (mods Modules) Sorted() []*Module {
 	all := make([]*Module, 0, len(mods))
 
-	for _, dep := range mods {
-		all = append(all, dep)
+	for _, mod := range mods {
+		all = append(all, mod)
 	}
 
 	sort.Slice(all, func(i, j int) bool {
@@ -139,20 +128,6 @@ func (mods Modules) String() string {
 	for _, mod := range mods.Sorted() {
 		buff.WriteString(mod.String())
 		buff.WriteRune('\n')
-	}
-
-	return buff.String()
-}
-
-func (mods Modules) Ref() string {
-	var buff strings.Builder
-
-	for _, mod := range mods.Sorted() {
-		if buff.Len() != 0 {
-			buff.WriteRune(',')
-		}
-
-		buff.WriteString(mod.Ref())
 	}
 
 	return buff.String()
@@ -184,4 +159,16 @@ func (mods Modules) MarshalJSON() ([]byte, error) {
 	}
 
 	return json.Marshal(dict)
+}
+
+func (mods Modules) ToArtifacts() Artifacts {
+	arts := make(Artifacts, len(mods))
+
+	for _, mod := range mods {
+		art := mod.Artifact
+
+		arts[art.Name] = art
+	}
+
+	return arts
 }

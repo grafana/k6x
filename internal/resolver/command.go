@@ -46,6 +46,10 @@ func (res *commandResolver) Resolve(
 	return res.resolveFromOutput(out, deps)
 }
 
+func (res *commandResolver) Starred(context.Context, int) (dependency.Modules, error) {
+	return make(dependency.Modules), nil
+}
+
 func (res *commandResolver) resolveFromOutput(
 	out []byte,
 	deps dependency.Dependencies,

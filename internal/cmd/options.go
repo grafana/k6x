@@ -25,6 +25,8 @@ const (
 	cmdBuild   = "build"
 	cmdRun     = "run"
 	cmdVersion = "version"
+	cmdService = "service"
+	cmdPreload = "preload"
 )
 
 type directories struct {
@@ -47,11 +49,15 @@ type options struct {
 	engines []builder.Engine
 	out     []string
 	with    dependency.Dependencies
+	addr    string
 	args    []string
 	argv    []string
 	dirs    *directories
 	appname string
 	spinner *spinner.Spinner
+
+	platforms []*builder.Platform
+	stars     int
 }
 
 func checkargs(args []string, appname string) error {
@@ -113,6 +119,12 @@ func newFlagSet(opts *options) *pflag.FlagSet {
 	flag.BoolVar(&opts.resolve, "resolve", false, "")
 	flag.BoolVar(&opts.json, "json", false, "")
 
+	// service command
+	flag.StringVar(&opts.addr, "addr", "127.0.0.1:8787", "")
+
+	// preload command
+	flag.IntVar(&opts.stars, "stars", defaultStars, "")
+
 	// k6 commands
 	flag.BoolVar(&opts.clean, "clean", false, "")
 	flag.BoolVar(&opts.dry, "dry", false, "")
@@ -157,7 +169,6 @@ func getopts(argv []string, afs afero.Fs) (*options, error) {
 	var err error
 
 	opts := new(options)
-
 	opts.appname = _appname
 
 	opts.dirs, err = getdirs(opts.appname, afs)
@@ -173,10 +184,11 @@ func getopts(argv []string, afs afero.Fs) (*options, error) {
 
 	engines := os.Getenv(strings.ToUpper(opts.appname) + "_BUILDER") //nolint:forbidigo
 	if len(engines) == 0 {
-		engines = "native,docker"
+		engines = defaultBuilders()
 	}
 
 	builders := flag.StringSlice("builder", strings.Split(engines, ","), "")
+	platforms := flag.StringSlice("platform", strings.Split(defaultPlatforms(), ","), "")
 	bin := flag.String("bin-dir", "", "")
 	with := flag.StringArray("with", []string{}, "")
 
@@ -196,13 +208,22 @@ func getopts(argv []string, afs afero.Fs) (*options, error) {
 
 	for _, val := range *builders {
 		var eng builder.Engine
-
 		eng, err = builder.EngineString(val)
 		if err != nil {
 			return nil, err
 		}
 
 		opts.engines = append(opts.engines, eng)
+	}
+
+	for _, val := range *platforms {
+		var platform *builder.Platform
+		platform, err = builder.ParsePlatform(val)
+		if err != nil {
+			return nil, err
+		}
+
+		opts.platforms = append(opts.platforms, platform)
 	}
 
 	if opts.with, err = parseWith(*with); err != nil {
@@ -221,7 +242,6 @@ func getopts(argv []string, afs afero.Fs) (*options, error) {
 
 	for i := range opts.out {
 		parts := strings.SplitN(opts.out[i], "=", 2)
-
 		opts.out[i] = parts[0]
 	}
 
@@ -238,6 +258,14 @@ func (opts *options) deps() bool {
 
 func (opts *options) build() bool {
 	return len(opts.args) > 1 && opts.args[1] == cmdBuild
+}
+
+func (opts *options) service() bool {
+	return len(opts.args) > 1 && opts.args[1] == cmdService
+}
+
+func (opts *options) preload() bool {
+	return len(opts.args) > 1 && opts.args[1] == cmdPreload
 }
 
 func (opts *options) version() bool {
@@ -261,6 +289,22 @@ func (opts *options) dependencies() dependency.Dependencies {
 	}
 
 	return deps
+}
+
+func (opts *options) exec(
+	cmd string,
+	args []string,
+	stdin, stdout, stderr *os.File, //nolint:forbidigo
+) (int, error) {
+	if opts.spinner.Enabled() {
+		opts.spinner.Stop()
+	}
+
+	if opts.dry {
+		return 0, nil
+	}
+
+	return exec(cmd, args, stdin, stdout, stderr)
 }
 
 func bindir(appname string, basedir string, afs afero.Fs) string {
@@ -297,6 +341,7 @@ func getdirs(appname string, afs afero.Fs) (*directories, error) {
 	return dirs, nil
 }
 
+//nolint:forbidigo
 func getspinner(opts *options) *spinner.Spinner {
 	var sopts []spinner.Option
 
@@ -304,10 +349,13 @@ func getspinner(opts *options) *spinner.Spinner {
 		sopts = append(sopts, spinner.WithColor("magenta"))
 	}
 
+	sopts = append(sopts, spinner.WithWriterFile(os.Stderr))
+
 	sp := spinner.New(spinner.CharSets[51], 200*time.Millisecond, sopts...)
 	sp.Reverse()
+	sp.Prefix = opts.appname + " "
 
-	if opts.verbose || opts.quiet || opts.help {
+	if opts.verbose || opts.quiet {
 		sp.Disable()
 	}
 
@@ -332,3 +380,33 @@ var (
 		"paused", "p",
 	}
 )
+
+func defaultBuilders() string {
+	var all strings.Builder
+
+	for _, eng := range builder.DefaultEngines() {
+		if all.Len() != 0 {
+			all.WriteRune(',')
+		}
+
+		all.WriteString(eng.String())
+	}
+
+	return all.String()
+}
+
+func defaultPlatforms() string {
+	var all strings.Builder
+
+	for _, plat := range builder.SupportedPlatforms() {
+		if all.Len() != 0 {
+			all.WriteRune(',')
+		}
+
+		all.WriteString(plat.String())
+	}
+
+	return all.String()
+}
+
+const defaultStars = 5

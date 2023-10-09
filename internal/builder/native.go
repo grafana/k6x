@@ -63,13 +63,21 @@ func hasGit() bool {
 	return err == nil
 }
 
-func newNativeBuilder() (*nativeBuilder, error) {
-	return new(nativeBuilder), nil
+func newNativeBuilder(_ context.Context) (Builder, bool, error) {
+	if _, hasGo := goVersion(); !hasGo || !hasGit() {
+		return nil, false, nil
+	}
+
+	return new(nativeBuilder), true, nil
+}
+
+func (b *nativeBuilder) Engine() Engine {
+	return Native
 }
 
 func (b *nativeBuilder) Build(
 	ctx context.Context,
-	goenv *GOEnv,
+	platform *Platform,
 	mods dependency.Modules,
 	out io.Writer,
 ) error {
@@ -87,11 +95,11 @@ func (b *nativeBuilder) Build(
 
 	defer b.close()
 
-	if goenv == nil {
-		goenv = new(GOEnv).FromRuntime()
+	if platform == nil {
+		platform = RuntimePlatform()
 	}
 
-	return b.build(ctx, goenv, mods, out)
+	return b.build(ctx, platform, mods, out)
 }
 
 func (b *nativeBuilder) close() {
@@ -105,7 +113,7 @@ func (b *nativeBuilder) close() {
 
 func (b *nativeBuilder) build(
 	ctx context.Context,
-	goenv *GOEnv,
+	platform *Platform,
 	mods dependency.Modules,
 	out io.Writer,
 ) error {
@@ -113,9 +121,9 @@ func (b *nativeBuilder) build(
 
 	builder := new(xk6.Builder)
 
-	builder.Cgo = goenv.CGO
-	builder.OS = goenv.GOOS
-	builder.Arch = goenv.GOARCH
+	builder.Cgo = false
+	builder.OS = platform.OS
+	builder.Arch = platform.Arch
 
 	if k6, has := mods.K6(); has {
 		builder.K6Version = k6.Tag()
@@ -148,9 +156,10 @@ func (b *nativeBuilder) build(
 		return err
 	}
 
-	defer deferredClose(tmp, &err)
-
 	_, err = io.Copy(out, tmp)
+
+	tmp.Close()           //nolint:errcheck,gosec
+	os.Remove(tmp.Name()) //nolint:errcheck,gosec
 
 	return err
 }

@@ -337,7 +337,7 @@ wget --content-disposition https://example.com/linux/amd64/top,k6/x/faker,dashbo
 curl -OJL https://example.com/linux/amd64/top,k6/x/faker,dashboard
 ```
 
-#### How It Works
+#### How Build Service Works
 
 The service serves `HTTP GET` requests, with a well-defined path structure:
 

@@ -3,8 +3,15 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 name: test
-on: [push, pull_request, workflow_dispatch]
-
+on:
+  pull_request:
+  workflow_dispatch:
+  push:
+    paths-ignore:
+      - 'docs/**'
+      - README.md
+      - 'releases/**'
+  
 jobs:
   test:
     name: Test

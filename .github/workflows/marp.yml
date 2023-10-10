@@ -1,0 +1,53 @@
+# SPDX-FileCopyrightText: 2023 Iván SZKIBA
+#
+# SPDX-License-Identifier: AGPL-3.0-only
+
+name: marp
+concurrency: marp
+
+on:
+  push:
+    branches:
+      - master
+      - intro
+    paths:
+      - 'docs/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Ensure docs dir exists
+        run: mkdir -p build/docs
+
+# BEGIN: intro
+      - name: Ensure intro dir exists
+        run: mkdir -p build/docs/intro
+      - name: Marp Build (HTML)
+        uses: docker://marpteam/marp-cli:v3.2.0
+        with:
+          args: docs/intro/README.md -o build/docs/intro/index.html
+        env:
+          MARP_USER: root:root
+      - name: Marp Build (README.pdf)
+        uses: docker://marpteam/marp-cli:v3.2.0
+        with:
+          args: docs/intro/README.md --allow-local-files --pdf -o build/docs/intro/k6x-intro.pdf
+        env:
+          MARP_USER: root:root
+# END: intro
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: "build/docs"
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2

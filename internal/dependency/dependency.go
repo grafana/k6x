@@ -18,7 +18,11 @@ import (
 	"github.com/Masterminds/semver/v3"
 )
 
-var ErrInvalidConstraints = errors.New("invalid constraints")
+var (
+	ErrInvalidConstraints = errors.New("invalid constraints")
+
+	defaultConstraints, _ = semver.NewConstraint("*") //nolint:gochecknoglobals
+)
 
 type Dependency struct {
 	Name        string              `json:"name,omitempty"`
@@ -41,8 +45,16 @@ func New(name, constraints string) (*Dependency, error) {
 	return dep, nil
 }
 
+func (dep *Dependency) GetConstraints() *semver.Constraints {
+	if dep.Constraints == nil {
+		return defaultConstraints
+	}
+
+	return dep.Constraints
+}
+
 func (dep *Dependency) Check(version *semver.Version) bool {
-	return version != nil && (dep.Constraints == nil || dep.Constraints.Check(version))
+	return version != nil && dep.GetConstraints().Check(version)
 }
 
 func (dep *Dependency) String() string {
@@ -50,12 +62,7 @@ func (dep *Dependency) String() string {
 
 	buff.WriteString(dep.Name)
 	buff.WriteRune(' ')
-
-	if dep.Constraints != nil {
-		buff.WriteString(dep.Constraints.String())
-	} else {
-		buff.WriteRune('*')
-	}
+	buff.WriteString(dep.GetConstraints().String())
 
 	return buff.String()
 }
@@ -100,7 +107,7 @@ func (deps Dependencies) K6() (*Dependency, bool) {
 }
 
 func (deps Dependencies) Extensions() []*Dependency {
-	var exts []*Dependency
+	exts := make([]*Dependency, 0, len(deps))
 
 	for name, dep := range deps {
 		if name != k6 {
@@ -115,15 +122,32 @@ func (deps Dependencies) Extensions() []*Dependency {
 	return exts
 }
 
+func (deps Dependencies) Sorted() []*Dependency {
+	all := make([]*Dependency, 0, len(deps))
+
+	for _, dep := range deps {
+		all = append(all, dep)
+	}
+
+	sort.Slice(all, func(i, j int) bool {
+		if all[i].Name == k6 {
+			return true
+		}
+
+		if all[j].Name == k6 {
+			return false
+		}
+
+		return all[i].Name < all[j].Name
+	})
+
+	return all
+}
+
 func (deps Dependencies) String() string {
 	var buff strings.Builder
 
-	if dep, ok := deps.K6(); ok {
-		buff.WriteString(dep.String())
-		buff.WriteRune('\n')
-	}
-
-	for _, dep := range deps.Extensions() {
+	for _, dep := range deps.Sorted() {
 		buff.WriteString(dep.String())
 		buff.WriteRune('\n')
 	}
@@ -135,13 +159,7 @@ func (deps Dependencies) MarshalJSON() ([]byte, error) {
 	dict := make(map[string]string, len(deps))
 
 	for _, dep := range deps {
-		constraints := "*"
-
-		if dep.Constraints != nil {
-			constraints = dep.Constraints.String()
-		}
-
-		dict[dep.Name] = constraints
+		dict[dep.Name] = dep.GetConstraints().String()
 	}
 
 	var buff bytes.Buffer

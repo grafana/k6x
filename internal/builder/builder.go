@@ -9,47 +9,33 @@ package builder
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"io"
 
-	"github.com/spf13/afero"
-	"github.com/szkiba/k6x/internal/resolver"
+	"github.com/szkiba/k6x/internal/dependency"
 )
 
-var errNoEngine = errors.New("no suitable builder")
-
 type Builder interface {
-	Build(ctx context.Context, ings resolver.Ingredients, dir string, afs afero.Fs) error
+	Build(ctx context.Context, platform *Platform, mods dependency.Modules, out io.Writer) error
+	Engine() Engine
 }
 
-func New(engines ...Engine) (Builder, error) {
+func New(ctx context.Context, engines ...Engine) (Builder, error) {
 	engs := engines
 	if len(engs) == 0 {
-		engs = append(engs, Native, Docker)
+		engs = append(engs, DefaultEngines()...)
 	}
 
 	for _, eng := range engines {
-		if eng == Docker {
-			return newDockerBuilder()
+		impl, found, err := eng.NewBuilder(ctx)
+		if err != nil {
+			return nil, err
 		}
 
-		if eng == Native {
-			if _, hasGo := goVersion(); hasGo && hasGit() {
-				return newNativeBuilder()
-			}
+		if found {
+			return impl, nil
 		}
 	}
 
-	return nil, fmt.Errorf("%w in: %v", errNoEngine, engs)
-}
-
-func NewWithType(engine Engine) (Builder, error) {
-	switch engine {
-	case Docker:
-		return newDockerBuilder()
-	case Native:
-		return newNativeBuilder()
-	default:
-		panic("unknown builder engine")
-	}
+	return nil, fmt.Errorf("%w in: %v", errNoBuilder, engs)
 }

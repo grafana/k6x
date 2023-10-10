@@ -19,6 +19,7 @@ import (
 	"github.com/mattn/go-colorable"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/afero"
+	"github.com/szkiba/k6x/internal/builder"
 	"github.com/szkiba/k6x/internal/resolver"
 )
 
@@ -45,6 +46,10 @@ func main(
 		return exitErr, err
 	}
 
+	defer opts.spinner.Stop()
+
+	ctx = builder.WithReplacements(ctx, opts.reps)
+
 	initLogger(opts)
 
 	c := make(chan os.Signal, 1)
@@ -56,7 +61,11 @@ func main(
 		}
 	}()
 
-	res := resolver.NewWithCacheDir(opts.dirs.http)
+	res, err := resolver.New(opts.dirs.http, opts.filter)
+	if err != nil {
+		return exitErr, err
+	}
+
 	cmd := filepath.Join(opts.dirs.bin, k6Binary)
 
 	if opts.deps() {
@@ -75,6 +84,14 @@ func main(
 		}
 
 		return exitErr, err
+	}
+
+	if opts.service() {
+		return 0, serviceCommand(ctx, res, opts, stdout)
+	}
+
+	if opts.preload() {
+		return 0, preloadCommand(ctx, res, opts, stdout)
 	}
 
 	if opts.version() {
@@ -96,23 +113,6 @@ func main(
 	return otherCommand(ctx, cmd, res, opts, stdin, stdout, stderr)
 }
 
-func initLogger(opts *options) {
-	level := logrus.InfoLevel
-
-	if opts.verbose {
-		level = logrus.DebugLevel
-	}
-
-	if opts.quiet {
-		level = logrus.WarnLevel
-	}
-
-	logrus.SetLevel(level)
-
-	logrus.SetFormatter(&logrus.TextFormatter{ForceColors: true})
-	logrus.SetOutput(colorable.NewColorableStdout())
-}
-
 func usage(out io.Writer, tmpl string, opts *options) error {
 	name := "usage"
 	if len(opts.args) > 1 {
@@ -120,7 +120,15 @@ func usage(out io.Writer, tmpl string, opts *options) error {
 	}
 	t := template.Must(template.New(name).Parse(tmpl))
 
-	return t.Execute(out, map[string]interface{}{"appname": opts.appname, "bin": opts.dirs.bin})
+	return t.Execute(
+		out,
+		map[string]interface{}{
+			"appname":   opts.appname,
+			"bin":       opts.dirs.bin,
+			"builders":  defaultBuilders(),
+			"platforms": defaultPlatforms(),
+		},
+	)
 }
 
 func usagelogo(out *os.File) { //nolint:forbidigo
@@ -136,13 +144,17 @@ const (
 
 	otherUsage = `
 Launcher Commands:
-  deps   Print k6 and extension dependencies
-  build  Build custom k6 binary with extensions
+  deps    Print k6 and extension dependencies
+  build   Build custom k6 binary with extensions
+  service Start k6x builder service
+  preload Preload (go) build cache
 
 Launcher Flags:
   --bin-dir path     cache folder for k6 binary (default: {{.bin}})
+  --cache-dir path   set cache base directory
   --with dependency  additional dependency and version constraints
-  --builder list     comma separated list of builders (default: native,docker)
+  --filter expr      jmespath syntax extension registry filter (default: [*])
+  --builder list     comma separated list of builders (default: {{.builders}})
   --clean            remove cached k6 binary
   --dry              do not run k6 command
 `

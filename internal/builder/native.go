@@ -12,12 +12,10 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"path/filepath"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/afero"
-	"github.com/szkiba/k6x/internal/resolver"
+	"github.com/szkiba/k6x/internal/dependency"
 	"go.k6.io/xk6"
 )
 
@@ -65,15 +63,23 @@ func hasGit() bool {
 	return err == nil
 }
 
-func newNativeBuilder() (*nativeBuilder, error) {
-	return new(nativeBuilder), nil
+func newNativeBuilder(_ context.Context) (Builder, bool, error) {
+	if _, hasGo := goVersion(); !hasGo || !hasGit() {
+		return nil, false, nil
+	}
+
+	return new(nativeBuilder), true, nil
+}
+
+func (b *nativeBuilder) Engine() Engine {
+	return Native
 }
 
 func (b *nativeBuilder) Build(
 	ctx context.Context,
-	ings resolver.Ingredients,
-	dir string,
-	afs afero.Fs,
+	platform *Platform,
+	mods dependency.Modules,
+	out io.Writer,
 ) error {
 	b.logFlags = log.Flags()
 	b.logOutput = log.Writer()
@@ -89,7 +95,11 @@ func (b *nativeBuilder) Build(
 
 	defer b.close()
 
-	return b.build(ctx, ings, dir, afs)
+	if platform == nil {
+		platform = RuntimePlatform()
+	}
+
+	return b.build(ctx, platform, mods, out)
 }
 
 func (b *nativeBuilder) close() {
@@ -103,30 +113,68 @@ func (b *nativeBuilder) close() {
 
 func (b *nativeBuilder) build(
 	ctx context.Context,
-	ings resolver.Ingredients,
-	dir string,
-	afs afero.Fs,
+	platform *Platform,
+	mods dependency.Modules,
+	out io.Writer,
 ) error {
 	logrus.Debug("Building new k6 binary (native)")
 
-	if err := afs.MkdirAll(dir, 0o750); err != nil {
-		return err
-	}
-
 	builder := new(xk6.Builder)
 
-	if k6, has := ings.K6(); has {
+	builder.Cgo = false
+	builder.OS = platform.OS
+	builder.Arch = platform.Arch
+	builder.Replacements = newReplacements(mods, replacementsFromContext(ctx))
+
+	if k6, has := mods.K6(); has {
 		builder.K6Version = k6.Tag()
 	}
 
-	for _, ing := range ings.Extensions() {
+	for _, ing := range mods.Extensions() {
 		builder.Extensions = append(builder.Extensions,
 			xk6.Dependency{
-				PackagePath: ing.Module,
+				PackagePath: ing.Path,
 				Version:     ing.Tag(),
 			},
 		)
 	}
 
-	return builder.Build(ctx, filepath.Join(dir, "k6"))
+	tmp, err := os.CreateTemp("", "k6")
+	if err != nil {
+		return err
+	}
+
+	if err = tmp.Close(); err != nil {
+		return err
+	}
+
+	if err = builder.Build(ctx, tmp.Name()); err != nil {
+		return err
+	}
+
+	tmp, err = os.Open(tmp.Name())
+	if err != nil {
+		return err
+	}
+
+	_, err = io.Copy(out, tmp)
+
+	tmp.Close()           //nolint:errcheck,gosec
+	os.Remove(tmp.Name()) //nolint:errcheck,gosec
+
+	return err
+}
+
+func newReplacements(mods dependency.Modules, reps Replacements) []xk6.Replace {
+	replacements := make([]xk6.Replace, 0, len(reps))
+
+	for name, mod := range mods {
+		if rep, has := reps[name]; has {
+			old := xk6.ReplacementPath(mod.Path)
+			to := xk6.ReplacementPath(rep.Path)
+			replacements = append(replacements, xk6.Replace{Old: old, New: to})
+		}
+	}
+
+	return replacements
 }

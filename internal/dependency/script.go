@@ -9,7 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"path"
+	"path/filepath"
 	"regexp"
 
 	"github.com/evanw/esbuild/pkg/api"
@@ -53,7 +53,7 @@ func findDependencies(
 	found Dependencies,
 	visited map[string]struct{},
 ) error {
-	dir := path.Dir(filename)
+	dir := filepath.Dir(filename)
 
 	if _, done := visited[filename]; done {
 		return nil
@@ -79,7 +79,7 @@ func findDependencies(
 		}
 
 		if local := string(match[idxRequireLocal]); len(local) != 0 {
-			err := findDependencies(path.Join(dir, local), fs, found, visited)
+			err := findDependencies(filepath.Join(dir, local), fs, found, visited)
 			if err != nil {
 				return scriptError(err, filename)
 			}

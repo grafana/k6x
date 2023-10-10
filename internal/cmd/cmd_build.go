@@ -40,8 +40,10 @@ Usage:
 Flags:
   -o, --out name     output extension name
   --bin-dir path     folder for custom k6 binary (default: {{.bin}})
+  --cache-dir path   set cache base directory
   --with dependency  additional dependency and version constraints
-  --builder list     comma separated list of builders (default: native,docker)
+  --filter expr      jmespath syntax extension registry filter (default: [*])
+  --builder list     comma separated list of builders (default: {{.builders}})
   --no-color         disable colored output  
   -h, --help         display this help
 `

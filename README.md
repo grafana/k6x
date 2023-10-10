@@ -71,6 +71,9 @@ The pragma syntax can also be used for output extensions:
 
 Any number of `"use k6"` pragmas can be used.
 
+> **Note**
+> The use of pragmas is completely optional, it is only necessary if you want to specify version constraints.
+
 Read the version constraints syntax in the [Version Constraints](#version-constraints) section of the [Appendix](#appendix)
 
 > **Warning**
@@ -192,7 +195,7 @@ Some new subcommands will also appear, which are related to building the k6 bina
 
 ### Help
 
-The new subcommands (`build`, `deps`) display help in the usual way, with the `--help` or `-h` command line option.
+The new subcommands (`build`, `deps`, `service`, `preload`) display help in the usual way, with the `--help` or `-h` command line option.
 
 The k6 subcommands (`version`, `run` etc) also display help with the `--help` or `-h` command line option, so in this case the new k6x launcher flags are displayed before the normal k6 help.
 

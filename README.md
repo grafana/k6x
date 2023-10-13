@@ -16,7 +16,9 @@ The (experimental) [builder service](#builder-service) makes the use of extensio
 
 **asciicast**
 
-[![asciicast](https://asciinema.org/a/612785.svg)](https://asciinema.org/a/612785)
+![asciicast](docs/intro/readme.svg)
+
+*Check out [intro slides](https://ivan.szkiba.hu/k6x/intro/) for more asciicasts.*
 
 ## Prerequisites
 

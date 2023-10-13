@@ -14,19 +14,37 @@ theme: uncover
 
 https://github.com/szkiba/k6x
 
+<!--
+Thank you for watching the presentation about k6x.
+The primary goal of k6x is to make it easier to use k6 with extensions.
+k6x is currently a pet project, but I hope it will become an official project in the near future.
+Let's see what this presentation will be about.
+-->
+
 ---
 
 # Agenda
 
 - Use Cases
 - Under The Hood
-- Appendix
+- xk6-lint
+
+<!--
+Before we get to what the k6x is, I'll show you what it can be used for through a few use cases.
+Then I'll show you what's under the hood.
+Finally, I will introduce a new tool proposal that can be used to measure and improve the quality of extensions.
+-->
 
 ---
 
 # Use Cases
 
 What is k6x?
+
+<!--
+The following use cases will be familiar if you have tried using an extension with k6.
+I will show you what the k6x is good for.
+-->
 
 ---
 
@@ -53,6 +71,24 @@ export default function({ secrets }) {
   })
 }
 ```
+
+<!--
+The first use case is the most common. I just want to run the test.
+I don't want to know which extension is located where, how to build k6 with it.
+I just want to run the test. I just want to use the extensions.
+It's as simple as that, what I want.
+
+I will use this example test. Let's imagine that we have an encrypted YAML file in Ansible Valult format.
+We expect the encryption key in an environment variable, which is set in a file named .env and not stored in git.
+
+The YAML file contains api keys for a service.
+We want to call the service with randomly generated data using the api key.
+
+It wasn't easy to use 4 extensions in one screen of example code, but I did it.
+
+So we would like to run this test.
+-->
+
 ---
 
 > I just want to run my test!
@@ -62,6 +98,14 @@ k6x run script.js
 ```
 
 ![script.js](script.svg)
+
+<!--
+Well, all we need to do is run the test using the k6x command instead of the k6 command.
+
+It's that simple, k6x does the rest.
+
+The first time it takes a minimal amount of time to provide the correct k6 binary, but the second run happens immediately because of the cache.
+-->
 
 ---
 
@@ -94,6 +138,13 @@ export default function({ secrets }) {
 }
 ```
 
+<!--
+Extensions change from time to time, new functions are added to the API, or function parameters change.
+This means that our test may only work with a certain version of the extension. In such cases, it is useful to be able to specify version constraints.
+
+Version constraints can be specified with the "use k6" pragma, similar to the "use strict" pragma.
+Using version constraints is optional.
+-->
 ---
 
 > I want to run my test, but with...
@@ -104,6 +155,9 @@ k6x run script-with.js
 
 ![script-with.js](script-with.svg)
 
+<!--
+k6x takes version constraints into account when running the test and will use the appropriate version of each extension.
+-->
 ---
 
 > I want to run my test, but with output extension
@@ -113,6 +167,11 @@ k6x run -o top -d 5s script.js
 ```
 
 ![top.js](top.svg)
+
+<!--
+In addition to the extensions used in the test, k6x automatically detects the use of output extensions.
+In this example, we use the xk6-top output extension to display metrics in the terminal.
+-->
 
 ---
 
@@ -124,6 +183,11 @@ docker run --rm -it -e K6X_BUILDER_SERVICE=$K6X_BUILDER_SERVICE -v $PWD:/home/k6
 
 ![cloud](cloud.svg)
 
+<!--
+It is a natural requirement that we want to use the extensions in a cloud environment.
+In this example, k6x is running in a container as if it were running in a cloud environment.
+-->
+
 ---
 
 > I want to control which extensions are allowed
@@ -133,6 +197,16 @@ k6x run --filter "[?contains(tiers,'Official')]" script.js
 ```
 
 ![filter](filter.svg)
+
+<!--
+There are times when the use of an arbitrary extension is not allowed.
+It may be necessary to control the allowed extensions.
+The k6x makes this possible by using a filter.
+You can filter on any property of the extension.
+
+In this example, only official extensions are allowed.
+That's why we get an error message.
+-->
 
 ---
 
@@ -146,6 +220,12 @@ chmod +x k6
 
 ![get](get.svg)
 
+<!--
+Sometimes I don't want to use k6x, I just need a k6 binary with extensions.
+In this case, the appropriate k6 binary can be downloaded from the builder service using any HTTP client.
+The exact version of each extension must be specified in the path.
+-->
+
 ---
 
 > I need a k6 binary with extensions, but I'm lazy
@@ -158,6 +238,13 @@ chmod +x k6
 
 ![get-lazy](get-lazy.svg)
 
+<!--
+The previous URL was quite long and I'm quite lazy.
+The builder service also supports a looser definition, in which case it resolves the missing versions to the latest available.
+
+After resolving the versions, a redirect response will be sent to the URL containing the exact versions.
+-->
+
 ---
 
 > I want to build k6 binary with extensions
@@ -168,6 +255,12 @@ k6x build --with dashboard --with k6/x/faker --with top --with k6/x/yaml
 ```
 
 ![build](build.svg)
+
+<!--
+k6x can also be used as a build tool.
+I can specify which extensions I need on the command line or I can specify a test and it will detect which extensions I need.
+And it makes the corresponding k6 binary.
+-->
 
 ---
 
@@ -245,10 +338,6 @@ k6x build --with dashboard --with k6/x/faker --with top --with k6/x/yaml
 - fast due to local go build cache
   - although the service builder is often faster
 - the `szkiba/k6x` docker image uses it by default
-
----
-
-# Appendix
 
 ---
 

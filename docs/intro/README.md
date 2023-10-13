@@ -173,14 +173,14 @@ k6x build --with dashboard --with k6/x/faker --with top --with k6/x/yaml
 
 ## So what k6x is?
 
-* k6 launcher with extensions used by the test
-    * available as CLI and docker image
-    * without any additional configuration
-    * without installing additional tooling
-      * but supports the installed toolings
-        * go, Docker Engine (even remote)
-* k6 native/docker builder
-* k6 builder/download service
+- k6 launcher with extensions used by the test
+    - available as CLI and docker image
+    - without any additional configuration
+    - without installing additional tooling
+      - but supports the installed toolings
+        - go, Docker Engine (even remote)
+- k6 native/docker builder
+- k6 builder/download service
 
 ---
 
@@ -190,61 +190,61 @@ k6x build --with dashboard --with k6/x/faker --with top --with k6/x/yaml
 
 ## Design Considerations
 
-* zero tooling requirement
+- zero tooling requirement
   - but support go and docker if installed
-* automatic build (on demand)
-* no configuration, only the test script
-* backwards compatibility (imports, registry)
-* support version constraints
-* ready for cloud
-* JavaScript-like behavior
+- automatic build (on demand)
+- no configuration, only the test script
+- backwards compatibility (imports, registry)
+- support version constraints
+- ready for cloud
+- JavaScript-like behavior
 
 ---
 
 ## How It Works
 
-1) test script analysis
-   * recursively following local imports
-2) creating a list of extensions
-   * with optional version constraints
-3) using cached k6 binary if possible
-4) resolving extension names into go modules
-5) resolving version constraints
-6) build k6 binary and cache
-   * builders: service, native, docker
+1. test script analysis
+   - recursively following local imports
+2. creating a list of extensions
+   - with optional version constraints
+3. using cached k6 binary if possible
+4. resolving extension names into go modules
+5. resolving version constraints
+6. build k6 binary and cache
+   - builders: service, native, docker
 ---
 
 ### Builder Service
 
-* HTTP service with GET method
-  * the path identifies the k6 binary
-  * /os/arch/sorted-versioned-dependency-list
-  * each k6 binary is built only once
-  * response is cacheable forever
-* local HTTP accelerator proxy and edge cache
-* with persistent go build (and source) cache
-  * go build is really fast
-* preload feature for go build cache
+- HTTP service with GET method
+  - the path identifies the k6 binary
+  - /os/arch/sorted-versioned-dependency-list
+  - each k6 binary is built only once
+  - response is cacheable forever
+- local HTTP accelerator proxy and edge cache
+- with persistent go build (and source) cache
+  - go build is really fast
+- preload feature for go build cache
 
 ---
 
 ### Docker Builder
 
-* persistent cache volume
-* almost as fast as the native go build
-* custom docker image (`szkiba/k6x`)
-* remote docker engine support
-  * also via ssh
-* no docker CLI required to use it
+- persistent cache volume
+- almost as fast as the native go build
+- custom docker image (`szkiba/k6x`)
+- remote docker engine support
+  - also via ssh
+- no docker CLI required to use it
 
 ---
 
 ### Native Builder
 
-* using locally installed go tooling
-* fast due to local go build cache
-  * although the service builder is often faster
-* the `szkiba/k6x` docker image uses it by default
+- using locally installed go tooling
+- fast due to local go build cache
+  - although the service builder is often faster
+- the `szkiba/k6x` docker image uses it by default
 
 ---
 
@@ -258,15 +258,15 @@ Additional k6 extension ecosystem tools
 
 *k6 extension linter tool (proposal)*
 
-* check common extension requirements
-  * naming, verisoning, README.md, etc
-* available as CLI tool, HTTP service and GH action
-* grades by compliance level (A+,A,B,C,D,E,F)
-* service
-  * check can run automatically or on trigger
-  * provides colored badges ![xk6 comliance](https://img.shields.io/badge/xk6_compliance-A%2B-green) .. ![xk6 comliance](https://img.shields.io/badge/xk6_compliance-D-yellow) .. ![xk6 comliance](https://img.shields.io/badge/xk6_compliance-F-red)
-  * can be fed by GitHub(GitLab) `xk6` topic search
-  * can be used as self service extension registry
+- check common extension requirements
+  - naming, verisoning, README.md, etc
+- available as CLI tool, HTTP service and GH action
+- grades by compliance level (A+,A,B,C,D,E,F)
+- service
+  - check can run automatically or on trigger
+  - provides colored badges ![xk6 comliance](https://img.shields.io/badge/xk6_compliance-A%2B-green) .. ![xk6 comliance](https://img.shields.io/badge/xk6_compliance-D-yellow) .. ![xk6 comliance](https://img.shields.io/badge/xk6_compliance-F-red)
+  - can be fed by GitHub(GitLab) `xk6` topic search
+  - can be used as self service extension registry
 
 ---
 
@@ -274,14 +274,14 @@ Additional k6 extension ecosystem tools
 
 *k6 extension scaffolding tool (proposal)*
 
-* generate extension skeleton
-  * based on extension type (JavaScript, Output)
-* updates the extension's source code
-  * recommended k6 version in go.mod
-  * skeleton change follow-up
-  * tries to handle incompatible k6 API changes
-* available as CLI and GitHub CLI (gh) extension
-  * and as GitHub dependabot like GH action
+- generate extension skeleton
+  - based on extension type (JavaScript, Output)
+- updates the extension's source code
+  - recommended k6 version in go.mod
+  - skeleton change follow-up
+  - tries to handle incompatible k6 API changes
+- available as CLI and GitHub CLI (gh) extension
+  - and as GitHub dependabot like GH action
 
 ---
 

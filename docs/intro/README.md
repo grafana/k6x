@@ -20,7 +20,7 @@ https://github.com/szkiba/k6x
 
 - Use Cases
 - Under The Hood
-- Proposals
+- Appendix
 
 ---
 
@@ -248,9 +248,17 @@ k6x build --with dashboard --with k6/x/faker --with top --with k6/x/yaml
 
 ---
 
-# Proposals
+# Appendix
 
-Additional k6 extension ecosystem tools
+---
+
+### Builder Service Availability
+
+- no public builder service (yet)
+  - only `native` and `docker` builder can be used
+  - or a self-hosted builder service
+- there is a builder service for closed beta testing
+- set `K6X_BUILDER_SERVICE` to builder service URL
 
 ---
 
@@ -267,21 +275,6 @@ Additional k6 extension ecosystem tools
   - provides colored badges ![xk6 comliance](https://img.shields.io/badge/xk6_compliance-A%2B-green) .. ![xk6 comliance](https://img.shields.io/badge/xk6_compliance-D-yellow) .. ![xk6 comliance](https://img.shields.io/badge/xk6_compliance-F-red)
   - can be fed by GitHub(GitLab) `xk6` topic search
   - can be used as self service extension registry
-
----
-
-### xk6-kickstart
-
-*k6 extension scaffolding tool (proposal)*
-
-- generate extension skeleton
-  - based on extension type (JavaScript, Output)
-- updates the extension's source code
-  - recommended k6 version in go.mod
-  - skeleton change follow-up
-  - tries to handle incompatible k6 API changes
-- available as CLI and GitHub CLI (gh) extension
-  - and as GitHub dependabot like GH action
 
 ---
 

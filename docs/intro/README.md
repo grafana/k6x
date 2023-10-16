@@ -243,6 +243,7 @@ The previous URL was quite long and I'm quite lazy.
 The builder service also supports a looser definition, in which case it resolves the missing versions to the latest available.
 
 After resolving the versions, a redirect response will be sent to the URL containing the exact versions.
+We see this redirect in the output of curl as the first response.
 -->
 
 ---
@@ -275,9 +276,30 @@ And it makes the corresponding k6 binary.
 - k6 native/docker builder
 - k6 builder/download service
 
+<!--
+Well, what is k6x then?
+
+First of all, a k6 launcher, which ensures that the k6 binary will contain the extensions used by the test script.
+
+It is available as a native binary or as a docker image.
+
+No additional configuration is required to use it, only the test script.
+
+There is no need to install additional tools to use it.
+However, it supports the use of go and docker engine (even remote) if it is installed.
+
+It can be used as k6 builder tool, native or docker based.
+
+It can also be used as a k6 builder or download service.
+-->
+
 ---
 
 # Under The Hood
+
+<!--
+A few technological details about the k6x follow.
+-->
 
 ---
 
@@ -286,11 +308,28 @@ And it makes the corresponding k6 binary.
 - zero tooling requirement
   - but support go and docker if installed
 - automatic build (on demand)
-- no configuration, only the test script
+- no additional configuration, only the test script
 - backwards compatibility (imports, registry)
 - support version constraints
 - ready for cloud
 - JavaScript-like behavior
+
+<!--
+What were the design considerations of k6x?
+
+One of the most important design goals was to make it easy to use, without the need to install any tools.
+
+k6 should be built or downloaded automatically based on the test script.
+
+It must be backwards compatible, it cannot require changes to the test script that prevent it from running with standard k6.
+The k6 extension registry should be considered as the primary source of truth.
+
+Since extensions change over time, it should be possible to use version constraints, but optionally.
+
+It should be suitable for use in a cloud environment.
+
+Since the tests are written in JavaScript, solutions common in the JavaScript ecosystem should be preferred (use pragma, version constraints format)
+-->
 
 ---
 
@@ -305,6 +344,27 @@ And it makes the corresponding k6 binary.
 5. resolving version constraints
 6. build k6 binary and cache
    - builders: service, native, docker
+
+<!--
+A few bullet points about how k6x works. A more detailed description can be found in the readme file.
+
+The first step is to analyze the test script, recursively following the local imports.
+
+A list of required extensions is then created, taking into account optional version constraints.
+
+If the previously used k6 binary found in the cache contains the necessary extensions, it will be used.
+
+Otherwise, previously used extensions are added to the list. This is necessary to make the local cache more efficient.
+
+The names of the extensions are resolved to the go module names using the extension registry.
+
+The go module versions are selected taking into account the version constraints.
+
+The k6 binary is built using the appropriate builder. The default builder precedence is based on speed.
+
+It will use the first available builder.
+-->
+
 ---
 
 ### Builder Service
@@ -319,6 +379,42 @@ And it makes the corresponding k6 binary.
   - go build is really fast
 - preload feature for go build cache
 
+<!--
+The builder service is based on the HTTP GET method. Therefore, it can be considered both a builder service and a download service. The k6 binary is built only on the first call, after which it is downloaded from the cache.
+
+The GET method path clearly identifies the k6 binary. It includes the operating system, processor architecture, and all dependencies with version numbers. Of course, the dependencies also include k6, with a version number. k6 is the first item in the dependency list, followed by other dependencies in alphabetical order.
+
+Since the path clearly identifies the k6 binary, the answer can be cached forever.
+
+In front of the service there is a local HTTP accelerator proxy and an edge cache.
+
+The go build cache is persistent and stores the partial results of compiling each extension. Therefore, the occasional build is also fast.
+
+When new versions are released, a cache preload command can be run, which compiles the latest version of all extensions and k6, thereby preloading the go build cache.
+-->
+
+---
+
+### Builder Service Availability
+
+- no public builder service (yet)
+  - only `native` and `docker` builder can be used
+  - or a self-hosted builder service
+- there is a builder service for closed beta testing
+- set `K6X_BUILDER_SERVICE` to builder service URL
+
+<!--
+There is currently no public build service. Only native and docker builder can be used. Or you can run your own build service, simply start the k6x binary in service mode.
+
+For development, I created a build service instance under my own Oracle Cloud account, in the free tier. I connected a CloudFlare edge cache in front of it, also in the free tier. It works at an acceptable speed for personal use, but of course it is not suitable for beta testing.
+
+I created a builder service instance on an AWS virtual machine for beta testing. I will share its address on the discussion chat channel and you will be able to try it out. In fact, I'd like to ask you to try it, I'm looking forward to any feedback.
+
+To use the builder service, you need to set the K6X_BUILDER_SERVICE environment variable to the URL of the builder service.
+
+Of course, once there is a publicly available builder service, its address will be set by default.
+-->
+
 ---
 
 ### Docker Builder
@@ -330,6 +426,15 @@ And it makes the corresponding k6 binary.
   - also via ssh
 - no docker CLI required to use it
 
+<!--
+
+To use docker builder, you only need a docker engine, even a remote one.
+
+k6x communicates directly with the docker engine, so no docker CLI is required. Remote docker engine can be used via TCP or SSH protocol.
+
+For the build, k6x will automatically create a persistent cache volume and store the go build cache there. Therefore, the docker builder is almost as fast as the native go builder.
+-->
+
 ---
 
 ### Native Builder
@@ -339,15 +444,13 @@ And it makes the corresponding k6 binary.
   - although the service builder is often faster
 - the `szkiba/k6x` docker image uses it by default
 
----
+<!--
+The native builder can be used if you have a locally installed go compiler and git. There is no need to install xk6, k6x includes xk6 as a built-in library.
 
-### Builder Service Availability
+The native builder is fast, thanks to the local go build cache. Although the service builder is often faster, especially if the k6 binary is already in the HTTP cache.
 
-- no public builder service (yet)
-  - only `native` and `docker` builder can be used
-  - or a self-hosted builder service
-- there is a builder service for closed beta testing
-- set `K6X_BUILDER_SERVICE` to builder service URL
+The k6x docker image uses this builder by default because the docker image includes a go compiler.
+-->
 
 ---
 
@@ -365,7 +468,31 @@ And it makes the corresponding k6 binary.
   - can be fed by GitHub(GitLab) `xk6` topic search
   - can be used as self service extension registry
 
+<!--
+Finally, a tool development proposal.
+
+Using extensions requires trust from users. It would be nice to see how each extension meets expectations. The usual solution for this is the use of so-called linter tools.
+
+An extension linter tool would also be suitable for registry maintenance. A linter service could even replace the extension registry.
+
+Main features:
+
+It would check how well the extension meets the requirements of the specification. For example: is the repository named correctly, is the extension versioned correctly, is there a readme file, is the extension using the correct k6 version, and so on.
+
+It would be classified in an easily understandable grade based on compliance with the specification.
+A+, A, B, C and so on.
+
+The linter service would provide easily recognizable colored badges based on the grades. Badges are good, everyone understands them, everyone loves them. With the badges, users can easily verify the quality of the given extension.
+
+The check can be scheduled or triggered.
+
+The linter service can also be considered a self-service extension registry. Developers can initiate the verification using a GitHub action, which also registers their extension.
+-->
+
 ---
 
 That's All Folks!
 
+<!--
+That's all I wanted to share with you about the k6x in brief. I hope this is just the beginning of the journey.
+-->

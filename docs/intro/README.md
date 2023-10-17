@@ -459,7 +459,7 @@ The k6x docker image uses this builder by default because the docker image inclu
 *k6 extension linter tool (proposal)*
 
 - check common extension requirements
-  - naming, verisoning, README.md, etc
+  - naming, versioning, README.md, etc
 - available as CLI tool, HTTP service and GH action
 - grades by compliance level (A+,A,B,C,D,E,F)
 - service

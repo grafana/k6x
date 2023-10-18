@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"context"
+	"math"
 	"net"
 	"net/http"
 	"os"
@@ -58,7 +59,9 @@ func serviceCommand(
 
 	defer l.Close() //nolint:errcheck
 
-	return server.Serve(netutil.LimitListener(l, runtime.NumCPU()))
+	limit := int(math.Max(2, float64(runtime.NumCPU())/4.0))
+
+	return server.Serve(netutil.LimitListener(l, limit))
 }
 
 func recovery(handler http.Handler) http.Handler {

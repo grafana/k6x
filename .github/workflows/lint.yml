@@ -1,16 +1,13 @@
-# SPDX-FileCopyrightText: 2023 Iván SZKIBA
-#
-# SPDX-License-Identifier: AGPL-3.0-only
-
 name: lint
+
 on:
   pull_request:
   workflow_dispatch:
   push:
     paths-ignore:
-      - 'docs/**'
+      - "docs/**"
       - README.md
-      - 'releases/**'
+      - "releases/**"
 
 permissions:
   contents: read
@@ -22,18 +19,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: REUSE linter
-        uses: fsfe/reuse-action@v3
-        with:
-          args: lint
       - name: Setup go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.21"
+          go-version: "1.22.2"
           cache: false
       - name: Go linter
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v3
         with:
-          version: v1.54
+          version: v1.57
           args: --timeout=30m
           install-mode: binary

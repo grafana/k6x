@@ -1,11 +1,11 @@
-"use k6 >= v0.46"
-"use k6 with k6/x/faker >= 0.2"
-import http from "k6/http"
+"use k6 >= v0.50";
+"use k6 with k6/x/faker >= 0.3";
 
-import faker from "k6/x/faker" // not included in official k6 binary
+import http from "k6/http";
+import faker from "k6/x/faker";
 
 export default function () {
-  let user = faker.person()
+  const user = faker.person.name();
 
-  let resp = http.post("https://httpbin.test.k6.io/post", JSON.stringify(user))
+  const resp = http.post("https://httpbin.test.k6.io/post", JSON.stringify(user));
 }

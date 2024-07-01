@@ -1,10 +1,5 @@
-# SPDX-FileCopyrightText: 2023 Iván SZKIBA
-#
-# SPDX-License-Identifier: AGPL-3.0-only
-
-/.bin
-/dist
 /build
-/.k6x
 /k6x
+/k6x.exe
 /k6
+/k6.exe

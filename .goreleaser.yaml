@@ -1,56 +1,29 @@
-# SPDX-FileCopyrightText: 2023 Iván SZKIBA
-#
-# SPDX-License-Identifier: AGPL-3.0-only
-
 project_name: k6x
-env:
-  - OWNER=szkiba
+version: 2
 before:
   hooks:
     - go mod tidy
+dist: build/dist
 builds:
   - env:
       - CGO_ENABLED=0
-    goos:  [ 'darwin', 'linux', 'windows' ]
-    goarch: [ 'amd64', 'arm64' ]
+    goos: ["darwin", "linux", "windows"]
+    goarch: ["amd64", "arm64"]
     ldflags:
-      - '-s -w -X {{.ModulePath}}/internal/cmd._version={{.Version}} -X {{.ModulePath}}/internal/cmd._appname={{.ProjectName}} -X {{.ModulePath}}/internal/cmd._owner={{index .Env "GITHUB_REPOSITORY_OWNER"}}'
+      - "-s -w -X main.version={{.Version}} -X main.appname={{.ProjectName}}"
 source:
   enabled: true
-  name_template: '{{ .ProjectName }}_{{ .Version }}_source'
+  name_template: "{{ .ProjectName }}_{{ .Version }}_source"
 
 archives:
   - id: bundle
     format: tar.gz
     format_overrides:
-    - goos: windows
-      format: zip
-nfpms:
-  - package_name: '{{.ProjectName}}'
-    vendor: Iván Szkiba
-    maintainer: Iván Szkiba <iszkiba@gmail.com>
-    description: |-
-      Automatic k6 provisioning with extensions.
-
-    license: AGPL-3.0-only
-    formats: [ 'deb', 'rpm' ]
-    umask: 0o022
-    overrides:
-      deb:
-        contents:
-          - src: LICENSE
-            dst: /usr/share/doc/{{.ProjectName}}/copyright
-          - src: README.md
-            dst: /usr/share/doc/{{.ProjectName}}/README.md
-      rpm:
-        contents:
-          - src: LICENSE
-            dst: /usr/share/doc/{{.ProjectName}}/LICENSE
-          - src: README.md
-            dst: /usr/share/doc/{{.ProjectName}}/README.md
+      - goos: windows
+        format: zip
 
 checksum:
-  name_template: '{{ .ProjectName }}_{{ .Version }}_checksums.txt'
+  name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"
 
 snapshot:
   name_template: "{{ incpatch .Version }}-next+{{.ShortCommit}}{{if .IsGitDirty}}.dirty{{else}}{{end}}"
@@ -60,19 +33,24 @@ changelog:
   abbrev: -1
   filters:
     exclude:
-      - '^chore:'
-      - '^docs:'
-      - '^test:'
+      - "^chore:"
+      - "^docs:"
+      - "^test:"
+
+git:
+  ignore_tags:
+    - "nightly"
+    - "before-grafana"
 
 dockers:
   - id: amd64
     dockerfile: Dockerfile.goreleaser
     use: buildx
     image_templates:
-      - "{{ .Env.OWNER }}/{{ .ProjectName }}:{{ .Tag }}-amd64"
-      - "{{ .Env.OWNER }}/{{ .ProjectName }}:v{{ .Major }}-amd64"
-      - "{{ .Env.OWNER }}/{{ .ProjectName }}:v{{ .Major }}.{{ .Minor }}-amd64"
-      - "{{ .Env.OWNER }}/{{ .ProjectName }}:latest-amd64"
+      - "grafana/{{ .ProjectName }}:{{ .Tag }}-amd64"
+      - "grafana/{{ .ProjectName }}:v{{ .Major }}-amd64"
+      - "grafana/{{ .ProjectName }}:v{{ .Major }}.{{ .Minor }}-amd64"
+      - "grafana/{{ .ProjectName }}:latest-amd64"
 
     build_flag_templates:
       - "--platform=linux/amd64"
@@ -86,10 +64,10 @@ dockers:
     dockerfile: Dockerfile.goreleaser
     use: buildx
     image_templates:
-      - "{{ .Env.OWNER }}/{{ .ProjectName }}:{{ .Tag }}-arm64"
-      - "{{ .Env.OWNER }}/{{ .ProjectName }}:v{{ .Major }}-arm64"
-      - "{{ .Env.OWNER }}/{{ .ProjectName }}:v{{ .Major }}.{{ .Minor }}-arm64"
-      - "{{ .Env.OWNER }}/{{ .ProjectName }}:latest-arm64"
+      - "grafana/{{ .ProjectName }}:{{ .Tag }}-arm64"
+      - "grafana/{{ .ProjectName }}:v{{ .Major }}-arm64"
+      - "grafana/{{ .ProjectName }}:v{{ .Major }}.{{ .Minor }}-arm64"
+      - "grafana/{{ .ProjectName }}:latest-arm64"
 
     build_flag_templates:
       - "--platform=linux/arm64"
@@ -101,23 +79,23 @@ dockers:
       - "--label=org.opencontainers.image.licenses=AGPL-3.0-only"
 
 docker_manifests:
-- id: tag
-  name_template: "{{ .Env.OWNER }}/{{ .ProjectName }}:{{ .Tag }}"
-  image_templates:
-  - "{{ .Env.OWNER }}/{{ .ProjectName }}:{{ .Tag }}-amd64"
-  - "{{ .Env.OWNER }}/{{ .ProjectName }}:{{ .Tag }}-arm64"
-- id: major
-  name_template: "{{ .Env.OWNER }}/{{ .ProjectName }}:v{{ .Major }}"
-  image_templates:
-  - "{{ .Env.OWNER }}/{{ .ProjectName }}:v{{ .Major }}-amd64"
-  - "{{ .Env.OWNER }}/{{ .ProjectName }}:v{{ .Major }}-arm64"
-- id: major-minor
-  name_template: "{{ .Env.OWNER }}/{{ .ProjectName }}:v{{ .Major }}.{{ .Minor }}"
-  image_templates:
-  - "{{ .Env.OWNER }}/{{ .ProjectName }}:v{{ .Major }}.{{ .Minor }}-amd64"
-  - "{{ .Env.OWNER }}/{{ .ProjectName }}:v{{ .Major }}.{{ .Minor }}-arm64"
-- id: latest
-  name_template: "{{ .Env.OWNER }}/{{ .ProjectName }}:latest"
-  image_templates:
-  - "{{ .Env.OWNER }}/{{ .ProjectName }}:latest-amd64"
-  - "{{ .Env.OWNER }}/{{ .ProjectName }}:latest-arm64"
+  - id: tag
+    name_template: "grafana/{{ .ProjectName }}:{{ .Tag }}"
+    image_templates:
+      - "grafana/{{ .ProjectName }}:{{ .Tag }}-amd64"
+      - "grafana/{{ .ProjectName }}:{{ .Tag }}-arm64"
+  - id: major
+    name_template: "grafana/{{ .ProjectName }}:v{{ .Major }}"
+    image_templates:
+      - "grafana/{{ .ProjectName }}:v{{ .Major }}-amd64"
+      - "grafana/{{ .ProjectName }}:v{{ .Major }}-arm64"
+  - id: major-minor
+    name_template: "grafana/{{ .ProjectName }}:v{{ .Major }}.{{ .Minor }}"
+    image_templates:
+      - "grafana/{{ .ProjectName }}:v{{ .Major }}.{{ .Minor }}-amd64"
+      - "grafana/{{ .ProjectName }}:v{{ .Major }}.{{ .Minor }}-arm64"
+  - id: latest
+    name_template: "grafana/{{ .ProjectName }}:latest"
+    image_templates:
+      - "grafana/{{ .ProjectName }}:latest-amd64"
+      - "grafana/{{ .ProjectName }}:latest-arm64"

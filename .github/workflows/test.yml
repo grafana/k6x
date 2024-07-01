@@ -1,17 +1,14 @@
-# SPDX-FileCopyrightText: 2023 Iván SZKIBA
-#
-# SPDX-License-Identifier: AGPL-3.0-only
-
 name: test
+
 on:
   pull_request:
   workflow_dispatch:
   push:
     paths-ignore:
-      - 'docs/**'
+      - "docs/**"
       - README.md
-      - 'releases/**'
-  
+      - "releases/**"
+
 jobs:
   test:
     name: Test
@@ -26,12 +23,23 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.20.x
+          go-version: "1.21"
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Test
-        uses: magefile/mage-action@v3
+        run: go test -race -count 1 ./...
+
+      - name: Coverage Test
+        if: ${{ matrix.platform == 'ubuntu-latest' && github.ref_name == 'main' }}
+        run: go test -count 1 -coverprofile=coverage.txt ./...
+      - name: Upload Coverage
+        if: ${{ matrix.platform == 'ubuntu-latest' && github.ref_name == 'main' }}
+        uses: codecov/codecov-action@v4.0.1
         with:
-          version: v1.14.0
-          args: test
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: grafana/k6exec
+
+      - name: Generate Go Report Card
+        if: ${{ matrix.platform == 'ubuntu-latest' && github.ref_name == 'main' }}
+        uses: creekorful/goreportcard-action@v1.0

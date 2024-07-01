@@ -1,7 +1,3 @@
-# SPDX-FileCopyrightText: 2023 Iván SZKIBA
-#
-# SPDX-License-Identifier: AGPL-3.0-only
-
 name: release
 on:
   push:
@@ -20,20 +16,22 @@ jobs:
           fetch-depth: 0
       - name: Set up Go
         uses: actions/setup-go@v5
+        with:
+          go-version: "1.22.2"
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
         with:
-          platforms: 'amd64,arm64'
+          platforms: "amd64,arm64"
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}          
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
-          version: "1.20.0"
+          version: "2.0.1"
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

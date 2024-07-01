@@ -6,6 +6,9 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 # k6x
 
+> [!Important]
+> k6x will soon be transferred to the [grafana GitHub organization](https://github.com/grafana). The next release will be made after the transfer and refactor. The source code before the transfer is available using the [before-grafana](https://github.com/szkiba/k6x/tree/before-grafana) git tag.
+
 **Run k6 with extensions as easy as possible**
 
 k6x is a [k6](https://k6.io) launcher that automatically provides k6 with the [extensions](https://k6.io/docs/extensions/) used by the test.  To do this, k6x analyzes the test script and creates a list of required extensions (it also parses the command line to detect output extensions). Based on this list, k6x builds (and caches) the k6 binary and runs it.

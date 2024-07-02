@@ -1,7 +1,7 @@
 [![GitHub Release](https://img.shields.io/github/v/release/grafana/k6x)](https://github.com/grafana/k6x/releases/)
 [![Go Report Card](https://goreportcard.com/badge/github.com/grafana/k6x)](https://goreportcard.com/report/github.com/grafana/k6x)
 [![GitHub Actions](https://github.com/grafana/k6x/actions/workflows/test.yml/badge.svg)](https://github.com/grafana/k6x/actions/workflows/test.yml)
-[![codecov](https://codecov.io/gh/grafana/k6x/graph/badge.svg?token=6MP3G02V9C)](https://codecov.io/gh/grafana/k6x)
+[![codecov](https://codecov.io/gh/grafana/k6x/graph/badge.svg?token=nQA0QAF85R)](https://codecov.io/gh/grafana/k6x)
 ![GitHub Downloads](https://img.shields.io/github/downloads/grafana/k6x/total)
 
 <h1 name="title">k6x</h1>

@@ -1,12 +1,13 @@
 FROM golang:1.22.4-alpine3.20
 VOLUME /cache
+VOLUME /state
 RUN apk add --no-cache ca-certificates git && \
-    adduser -D -u 10000 -g 10000 -h /home/k6x k6x && \
-    mkdir -p /cache/go-build /cache/go-mod /cache/k6x && \
-    chown -R 10000:10000 /cache
-ENV XDG_CACHE_HOME="/cache" GOCACHE="/cache/go-build" GOMODCACHE="/cache/go-mod"
+    adduser -D -u 1000 -g 1000 -h /home/k6x k6x && \
+    mkdir -p /cache/go-build /cache/go-mod /cache/k6x /state/k6x&& \
+    chown -R 1000:1000 /cache /state
+ENV XDG_CACHE_HOME="/cache" GOCACHE="/cache/go-build" GOMODCACHE="/cache/go-mod" XDG_STATE_HOME="/state" 
 COPY k6x /usr/bin/k6x
 
-USER 10000
+USER 1000
 WORKDIR /home/k6x
 ENTRYPOINT ["k6x"]

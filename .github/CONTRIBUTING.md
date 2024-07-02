@@ -118,7 +118,7 @@ Build the executable binary.
 This is the easiest way to create an executable binary (although the release process uses the goreleaser tool to create release versions).
 
 ```
-go build -ldflags="-w -s" -o build/k6x .
+go build -ldflags="-w -s" -o k6x .
 ```
 
 #### snapshot
@@ -128,7 +128,17 @@ Creating an executable binary with a snapshot version.
 The goreleaser command-line tool is used during the release process. During development, it is advisable to create binaries with the same tool from time to time.
 
 ```
-goreleaser build --snapshot --clean --single-target -o build/k6x
+goreleaser build --snapshot --clean --single-target -o k6x
+```
+
+#### docker
+
+Building a Docker image. Before building the image, it is advisable to perform a snapshot build using goreleaser. To build the image, it is advisable to use the same `Docker.goreleaser` file that `goreleaser` uses during release.
+
+Requires: snapshot
+
+```
+docker build -t grafana/k6x -f Dockerfile.goreleaser .
 ```
 
 #### clean

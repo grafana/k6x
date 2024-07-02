@@ -31,15 +31,15 @@ jobs:
         run: go test -race -count 1 ./...
 
       - name: Coverage Test
-        if: ${{ matrix.platform == 'ubuntu-latest' && github.ref_name == 'main' }}
+        if: ${{ matrix.platform == 'ubuntu-latest' && github.ref_name == 'master' }}
         run: go test -count 1 -coverprofile=coverage.txt ./...
       - name: Upload Coverage
-        if: ${{ matrix.platform == 'ubuntu-latest' && github.ref_name == 'main' }}
+        if: ${{ matrix.platform == 'ubuntu-latest' && github.ref_name == 'master' }}
         uses: codecov/codecov-action@v4.0.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: grafana/k6exec
 
       - name: Generate Go Report Card
-        if: ${{ matrix.platform == 'ubuntu-latest' && github.ref_name == 'main' }}
+        if: ${{ matrix.platform == 'ubuntu-latest' && github.ref_name == 'master' }}
         uses: creekorful/goreportcard-action@v1.0

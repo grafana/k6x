@@ -1,9 +1,0 @@
-# SPDX-FileCopyrightText: 2023 Iván SZKIBA
-#
-# SPDX-License-Identifier: AGPL-3.0-only
-
-blank_issues_enabled: true
-contact_links:
-  - name: Discussions
-    url: https://github.com/szkiba/k6x/discussions/
-    about: Please ask and answer questions here.

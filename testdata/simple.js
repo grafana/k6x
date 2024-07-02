@@ -1,11 +1,10 @@
-// SPDX-FileCopyrightText: 2023 Iván SZKIBA
-//
-// SPDX-License-Identifier: AGPL-3.0-only
+"use k6 >= v0.50";
+"use k6 with k6/x/faker >= 0.3";
 
-import faker from "k6/x/faker"
+import faker from "k6/x/faker";
 
-import parts from "./simple/parts.js"
+import parts from "./simple/parts.js";
 
 export default function () {
-  let user = faker.person()
+  let user = faker.person();
 }

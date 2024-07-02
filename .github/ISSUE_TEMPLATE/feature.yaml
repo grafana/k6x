@@ -1,7 +1,3 @@
-# SPDX-FileCopyrightText: 2023 Iván SZKIBA
-#
-# SPDX-License-Identifier: AGPL-3.0-only
-
 name: Feature Request
 description: Use this template for suggesting new features.
 labels: [feature]

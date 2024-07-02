@@ -1,7 +1,3 @@
-# SPDX-FileCopyrightText: 2023 Iván SZKIBA
-#
-# SPDX-License-Identifier: AGPL-3.0-only
-
 name: Bug report
 description: Use this template for reporting bugs. Please search existing issues first.
 labels: [bug]
@@ -13,15 +9,10 @@ body:
       required: true
   - type: markdown
     attributes:
-      value: '## Environment'
+      value: "## Environment"
   - type: input
     attributes:
-      label: k6 version
-    validations:
-      required: true
-  - type: input
-    attributes:
-      label: xk6-dashboard version
+      label: k6x version
     validations:
       required: true
   - type: input
@@ -35,7 +26,7 @@ body:
       label: Docker version and image (if applicable)
   - type: markdown
     attributes:
-      value: '## Detailed issue description'
+      value: "## Detailed issue description"
   - type: textarea
     attributes:
       label: Steps to reproduce the problem

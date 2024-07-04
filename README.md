@@ -20,9 +20,29 @@ Run k6 with a seamless extension user experience.
 
 The launcher acts as a drop-in replacement for the `k6` command. For more convenient use, it is advisable to create an alias or shell script called `k6` for the launcher. The alias can be used in exactly the same way as the `k6` command, with the difference that it generates the real `k6` on the fly based on the extensions you want to use.
 
-The launcher will always run the k6 test script with the appropriate k6 binary, which contains the extensions used by the script. In order to do this, it analyzes the script arguments of the "run" and "archive" subcommands, detects the extensions to be used and their version constraints.
-
 Any k6 command can be used. Use the `help` command to list the available k6 commands.
+
+Since k6x tries to emulate the `k6` command line, the `help` command or the `--help` flag cannot be used to display help from `k6x` command itself. The `k6x` help can be displayed using the `--usage` flag:
+
+    k6x --usage
+
+### Prerequisites
+
+k6x tries to provide the appropriate k6 executable after detecting the extension dependencies. This can be done using a build service or a native builder.
+
+#### Build Service
+
+No additional installation is required to use the build service, just provide the build service URL.
+
+The build service URL can be specified in the `K6_BUILD_SERVICE_URL` environment variable or by using the `--build-service-url` flag.
+
+There is no default URL for the build service, otherwise k6x will automatically provide k6 with the native builder.
+
+#### Native Builder
+
+To use the native builder, you only need to install the [Go language toolkit](https://go.dev/doc/install).
+
+The native builder uses a k6 extension catalog to resolve extension URLs and versions. The extension catalog URL has a default value. A different extension catalog URL can be specified in the `K6_EXTENSION_CATALOG_URL` environment variable or by using the `--extension-catalog-url` flag.
 
 ### Pragma
 

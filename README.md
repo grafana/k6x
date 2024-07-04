@@ -48,7 +48,7 @@ Read the version constraints syntax in the [Version Constraints](#version-constr
 
 ### Environment
 
-The extensions to be used and optionally their version constraints can also be specified in the `K6_DEPENDENCIES` environment variable. The value of the `K6_DEPENDENCIES` environment variable is a comma-separated list of elements. Each element specifies an extension (or k6 itself) and optionally its version constraint.
+The extensions to be used and optionally their version constraints can also be specified in the `K6_DEPENDENCIES` environment variable. The value of the environment variable K6_DEPENDENCIES is a list of elements separated by semicolons. Each element specifies an extension (or k6 itself) and optionally its version constraint.
 
 ```
 k6>=0.52;k6/x/faker>=0.3;k6/x/sql>=0.4

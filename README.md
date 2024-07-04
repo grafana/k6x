@@ -24,8 +24,6 @@ The launcher will always run the k6 test script with the appropriate k6 binary, 
 
 Any k6 command can be used. Use the `help` command to list the available k6 commands.
 
-Any number of `"use k6"` pragmas can be used.
-
 ### Pragma
 
 Version constraints can be specified using the JavaScript `"use ..."` pragma syntax for k6 and extensions. Put the following lines at the beginning of the test script:
@@ -34,6 +32,8 @@ Version constraints can be specified using the JavaScript `"use ..."` pragma syn
 "use k6 >= v0.52";
 "use k6 with k6/x/faker > 0.2";
 ```
+
+Any number of `"use k6"` pragmas can be used.
 
 > **Note**
 > The use of pragmas is completely optional for JavaScript type extensions, it is only necessary if you want to specify version constraints.
@@ -147,6 +147,7 @@ major change is API breaking. For example,
 [extensions]: https://grafana.com/docs/k6/latest/extensions/
 [xk6-top]: https://github.com/szkiba/xk6-top
 [Masterminds/semver]: https://github.com/Masterminds/semver
+
 
 ```
 k6x [flags] [command]

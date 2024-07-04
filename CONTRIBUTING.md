@@ -72,13 +72,13 @@ For alternative ways of cloning the k6x repository, please refer to [GitHub's cl
 
 ### Tasks
 
-This section contains a description of the tasks performed during development. Commands must be issued in the `k6x` base directory. If you have the [xc](https://github.com/joerdav/xc) command-line tool, individual tasks can be executed simply by using the `xc task-name` command in the `k6x` base directory.
+This section contains a description of the tasks performed during development. Commands must be issued in the `k6x` base directory.
 
 #### readme
 
 Update documentation in README.md.
 
-```
+```sh
 go run ./tools/gendoc README.md
 ```
 
@@ -88,7 +88,7 @@ Run the static analyzer.
 
 We make use of the [golangci-lint](https://github.com/golangci/golangci-lint) tool to lint the code in CI. The actual version you can find in our [`.golangci.yml`](https://github.com/grafana/k6x/blob/master/.golangci.yml#L1).
 
-```
+```sh
 golangci-lint run
 ```
 
@@ -98,8 +98,7 @@ Run the tests.
 
 To exercise the entire test suite, please run the following command
 
-
-```
+```sh
 go test -count 1 -race -coverprofile=build/coverage.txt ./...
 ```
 
@@ -107,7 +106,7 @@ go test -count 1 -race -coverprofile=build/coverage.txt ./...
 
 View the test coverage report.
 
-```
+```sh
 go tool cover -html=build/coverage.txt
 ```
 
@@ -117,7 +116,7 @@ Build the executable binary.
 
 This is the easiest way to create an executable binary (although the release process uses the goreleaser tool to create release versions).
 
-```
+```sh
 go build -ldflags="-w -s" -o k6x .
 ```
 
@@ -127,7 +126,7 @@ Creating an executable binary with a snapshot version.
 
 The goreleaser command-line tool is used during the release process. During development, it is advisable to create binaries with the same tool from time to time.
 
-```
+```sh
 goreleaser build --snapshot --clean --single-target -o k6x
 ```
 
@@ -137,14 +136,24 @@ Building a Docker image. Before building the image, it is advisable to perform a
 
 Requires: snapshot
 
-```
+```sh
 docker build -t grafana/k6x -f Dockerfile.goreleaser .
+```
+
+#### examples
+
+Run all scripts in the `examples` directory with a fresh build.
+
+Requires: clean, snapshot
+
+```sh
+find  examples -type f | xargs -n 1 ./k6x run
 ```
 
 #### clean
 
 Delete the build directory.
 
-```
+```sh
 rm -rf build
 ```

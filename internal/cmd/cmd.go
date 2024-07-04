@@ -16,8 +16,8 @@ func New(levelVar *slog.LevelVar) *cobra.Command {
 	state := newState(levelVar)
 
 	root := &cobra.Command{
-		Use:               "exec [flags] [command]",
-		Short:             "Lanch k6 with extensions",
+		Use:               "k6x [flags] [command]",
+		Short:             "Run k6 with extensions",
 		Long:              help,
 		SilenceUsage:      true,
 		SilenceErrors:     true,

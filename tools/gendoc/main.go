@@ -12,5 +12,5 @@ import (
 func main() {
 	root := cmd.New(nil)
 	root.Use = strings.ReplaceAll(root.Use, "exec", "k6x")
-	clireadme.Main(root, 1)
+	clireadme.Main(root, 0)
 }

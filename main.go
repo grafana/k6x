@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
-	"strings"
 	"time"
 
 	"github.com/briandowns/spinner"
@@ -42,7 +41,6 @@ func main() {
 
 func newCmd(args []string, levelVar *slog.LevelVar) *cobra.Command {
 	cmd := cmd.New(levelVar)
-	cmd.Use = strings.Replace(cmd.Use, cmd.Name(), appname, 1)
 	cmd.Version = version
 
 	if len(args) == 1 && (args[0] == "-h" || args[0] == "--help") {

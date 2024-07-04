@@ -143,14 +143,10 @@ major change is API breaking. For example,
 * `^0.0` is equivalent to `>=0.0.0 <0.1.0`
 * `^0` is equivalent to `>=0.0.0 <1.0.0`
 
-
-**References**
-
-- [k6]: https://k6.io
-- [extensions]: https://grafana.com/docs/k6/latest/extensions/
-- [Masterminds/semver]: https://github.com/Masterminds/semver
-- [xk6-top]: https://github.com/szkiba/xk6-top
-
+[k6]: https://k6.io
+[extensions]: https://grafana.com/docs/k6/latest/extensions/
+[xk6-top]: https://github.com/szkiba/xk6-top
+[Masterminds/semver]: https://github.com/Masterminds/semver
 
 ```
 k6x [flags] [command]

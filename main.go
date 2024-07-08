@@ -10,7 +10,7 @@ import (
 
 	"github.com/briandowns/spinner"
 	"github.com/fatih/color"
-	"github.com/grafana/k6x/internal/cmd"
+	"github.com/grafana/k6exec/cmd"
 	sloglogrus "github.com/samber/slog-logrus/v2"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"

@@ -6,11 +6,12 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
 	"github.com/briandowns/spinner"
 	"github.com/fatih/color"
-	"github.com/grafana/k6x/internal/cmd"
+	"github.com/grafana/k6exec/cmd"
 	sloglogrus "github.com/samber/slog-logrus/v2"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -36,12 +37,15 @@ func initLogging(app string) *slog.LevelVar {
 }
 
 func main() {
-	runCmd(newCmd(os.Args[1:], initLogging(appname))) //nolint:forbidigo
+	runCmd(newCmd(appname, os.Args[1:], initLogging(appname))) //nolint:forbidigo
 }
 
-func newCmd(args []string, levelVar *slog.LevelVar) *cobra.Command {
+func newCmd(appname string, args []string, levelVar *slog.LevelVar) *cobra.Command {
 	cmd := cmd.New(levelVar)
 	cmd.Version = version
+
+	cmd.Use = strings.ReplaceAll(cmd.Use, "k6exec", appname)
+	cmd.Long = strings.ReplaceAll(cmd.Long, "k6exec", appname)
 
 	if len(args) == 1 && (args[0] == "-h" || args[0] == "--help") {
 		args[0] = "help"

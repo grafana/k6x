@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
 	"github.com/briandowns/spinner"
@@ -36,12 +37,15 @@ func initLogging(app string) *slog.LevelVar {
 }
 
 func main() {
-	runCmd(newCmd(os.Args[1:], initLogging(appname))) //nolint:forbidigo
+	runCmd(newCmd(appname, os.Args[1:], initLogging(appname))) //nolint:forbidigo
 }
 
-func newCmd(args []string, levelVar *slog.LevelVar) *cobra.Command {
+func newCmd(appname string, args []string, levelVar *slog.LevelVar) *cobra.Command {
 	cmd := cmd.New(levelVar)
 	cmd.Version = version
+
+	cmd.Use = strings.ReplaceAll(cmd.Use, "k6exec", appname)
+	cmd.Long = strings.ReplaceAll(cmd.Long, "k6exec", appname)
 
 	if len(args) == 1 && (args[0] == "-h" || args[0] == "--help") {
 		args[0] = "help"
